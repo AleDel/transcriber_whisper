@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart'; // Asegúrate de importar tu TranscribeCubit
+import 'package:transcriber_whisper/transcribe_cubit.dart';
+
+import '../transcribe_state.dart'; // Asegúrate de importar tu TranscribeCubit
 
 class MfaLogsWidget extends StatefulWidget {
   const MfaLogsWidget({Key? key}) : super(key: key);

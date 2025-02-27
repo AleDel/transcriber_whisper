@@ -1,41 +1,39 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
+import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/floatingWindow_widget.dart';
 import 'package:transcriber_whisper/widgets/mfaLogs_widget.dart';
-import 'package:transcriber_whisper/widgets/slider_widget.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/widgets/vertical_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
-import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart'; // Import the package
+import 'package:transcriber_whisper/widgets/slider_widget.dart';
+import 'package:transcriber_whisper/widgets/vertical_widget.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class HomePage3 extends StatefulWidget {
+  const HomePage3({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomePage3> createState() => _HomePage3State();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePage3State extends State<HomePage3> {
+  final ScrollController _scrollController = ScrollController();
   GetIt getIt = GetIt.instance;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //appBar: AppBar(title: const Text('Audio Transcriber')),
+      //appBar: AppBar(title: const Text('Transcriber')),
       body: Stack(
         children: [
           BlocBuilder<TranscribeCubit, TranscribeState>(
@@ -53,140 +51,86 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    //Text("estado: ${state.status.name}"),
-                    Column(
+                    // botones transcribir, etc
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton(
                           onPressed: () async => getIt<TranscribeCubit>().pickAudioFile(),
-                          child: const Text('Pick Audio File'),
+                          child: const Text('Cargar Audio'),
                         ),
-                        const SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () async => getIt<TranscribeCubit>().useFakeTranscription(),
-                          child: const Text('Use Test'),
+                          onPressed: () async => getIt<TranscribeCubit>().useMockTranscription(),
+                          child: const Text('Usar Mock data'),
                         ),
                       ],
                     ),
-                    //SizedBox(height: 100, child: MfaLogsWidget()), // Lo quitamos de aquí
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                    // interfaz grafica principal
+                    state.transcription != null
+                        ? Expanded(
+                          child: Column(
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  state.status == TranscribeStatus.isPlayerplaying
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
+                              AudioPlayerWidget(),
+                              if (state.waveformImageBase64 != null)
+                                Image.memory(
+                                  base64Decode(state.waveformImageBase64!),
+                                  width: 500,
+                                  height: 100,
                                 ),
-                                onPressed: () {
-                                  if (state.status == TranscribeStatus.isPlayerplaying) {
-                                    getIt<TranscribeCubit>().audioPlayer.pause();
-                                  } else {
-                                    getIt<TranscribeCubit>().audioPlayer.resume();
-                                  }
-                                },
+                              if (state.melSpectrogramBase64 != null)
+                                Image.memory(
+                                  base64Decode(state.melSpectrogramBase64!),
+                                  width: 500,
+                                  height: 100,
+                                ),
+                              SingleChildScrollView(
+                                controller: _scrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: SlidingText(
+                                  transcription: state.transcription!,
+                                  audioPosition: state.extradata!.audioPosition,
+                                  currentWordIndex: state.extradata!.currentWordIndex,
+                                  waveformImageBase64: state.waveformImageBase64,
+                                  scrollController: _scrollController,
+                                  onWordTap: (index) {
+                                    getIt<TranscribeCubit>().forceCurrentWord(index);
+                                  },
+                                ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.reply_all_rounded),
-                                onPressed: () {
-                                  getIt<TranscribeCubit>().audioPlayer.seek(
-                                    const Duration(seconds: 0),
-                                  );
-                                },
-                              ),
-                              Text(
-                                '${state.extradata?.audioPosition.toString().split('.').first ?? "0:00"} / ${state.extradata?.audioDuration.toString().split('.').first ?? "0:00"}',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          state.transcription != null
-                              ? Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                              Expanded(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
-                                      flex: 0,
-                                      child: SingleChildScrollView(
-                                        controller: getIt<TranscribeCubit>().scrollController,
-                                        scrollDirection: Axis.horizontal,
-                                        child: SlidingText(
-                                          key: const Key('slider-text'),
-                                          transcription: state.transcription!,
-                                          audioPosition:
-                                              state.extradata?.audioPosition ?? Duration.zero,
-                                          currentWordIndex: state.extradata?.currentWordIndex ?? -1,
-                                          //waveformImageBase64: state.waveformImageBase64,
-                                          scrollController:
-                                              getIt<TranscribeCubit>().scrollController,
-                                          onWordTap: (index) {
-                                            getIt<TranscribeCubit>().forceCurrentWord(index);
-                                          },
-                                          onAutoScrollChanged: (value) {
-                                            getIt<TranscribeCubit>().setAutoScroll(value);
-                                          },
-                                          autoScrollEnabled: true,
-                                        ),
+                                      child: VerticalTranscription(
+                                        transcription: state.transcription!,
+                                        audioPosition: state.extradata!.audioPosition,
+                                        currentWordIndex: state.extradata!.currentWordIndex,
+                                        onSeek: (duration, index) {
+                                          getIt<TranscribeCubit>().forceCurrentWord(index);
+                                        },
+                                        autoScrollEnabled: true,
+                                        onAutoScrollChanged: (value) {
+                                          getIt<TranscribeCubit>().setAutoScroll(value);
+                                        },
                                       ),
                                     ),
-                                    /*Expanded(
-                                      child: SizedBox(
-                                        height: 100,
-                                        //width: 1000,
-                                        child:
-                                        //state.waveformImageBase64 != null ?
-                                        Image.memory(
-                                          base64Decode(state.waveformImageBase64!),
-                                          fit: BoxFit.contain,
-                                          gaplessPlayback: true,
-                                          isAntiAlias: true,
-                                        ),
-                                        //    : Container(),
-                                      ),
-                                    ),*/
                                     Expanded(
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: VerticalTranscription(
-                                              transcription: state.transcription!,
-                                              audioPosition:
-                                                  state.extradata?.audioPosition ?? Duration.zero,
-                                              currentWordIndex:
-                                                  state.extradata?.currentWordIndex ?? -1,
-                                              onSeek: (Duration d, int indexword) {
-                                                getIt<TranscribeCubit>().audioPlayer.seek(
-                                                  d,
-                                                ); //se hace el seek
-                                                getIt<TranscribeCubit>().forceCurrentWord(
-                                                  indexword,
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: SelectableRichText(
-                                              segments: state.transcription!.segments,
-                                              currentWordIndex:
-                                                  state.extradata?.currentWordIndex ?? -1,
-                                              onWordTap: (index) {
-                                                getIt<TranscribeCubit>().forceCurrentWord(index);
-                                              },
-                                            ),
-                                          ),
-                                        ],
+                                      child: SelectableRichText(
+                                        segments: state.transcription!.segments,
+                                        currentWordIndex: state.extradata?.currentWordIndex ?? -1,
+                                        onWordTap: (index) {
+                                          getIt<TranscribeCubit>().forceCurrentWord(index);
+                                        },
                                       ),
                                     ),
                                   ],
                                 ),
-                              )
-                              : Container(),
-                        ],
-                      ),
-                    ),
+                              ),
+                            ],
+                          ),
+                        )
+                        : Container(),
                   ],
                 ),
               );

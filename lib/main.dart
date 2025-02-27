@@ -8,7 +8,8 @@ final getIt = GetIt.instance;
 
 void main() {
   //WidgetsFlutterBinding.ensureInitialized();
-  getIt.registerLazySingleton<TranscribeCubit>(() => TranscribeCubit());
+  //getIt.registerLazySingleton<TranscribeCubit>(() => TranscribeCubit());
+  getIt.registerSingleton<TranscribeCubit>(TranscribeCubit());
   runApp(const MainApp());
 }
 
@@ -19,7 +20,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<TranscribeCubit>(),
-      child: const MaterialApp(home: HomePage()),
+      child: const MaterialApp(home: HomePage3()),
     );
   }
 }

@@ -12,7 +12,7 @@ class Data extends Equatable {
     this.audioPosition = Duration.zero,
     this.audioDuration = Duration.zero,
     this.audioFilePath,
-    this.playAndStopWordOnSelect = false,
+    this.playAndStopWordOnSelect = true,
   });
 
   Data copyWith({

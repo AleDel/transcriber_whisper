@@ -1,4 +1,4 @@
-List<Map<String, dynamic>> textofake = [
+List<Map<String, dynamic>> textoMock = [
   {"end": 1.52, "probability": 0.98388671875, "start": 0, "word": " La"},
   {"end": 2.1, "probability": 0.948974609375, "start": 1.52, "word": " tortuga"},
   {"end": 2.56, "probability": 0.5810546875, "start": 2.1, "word": " Kali"},

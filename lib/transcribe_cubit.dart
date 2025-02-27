@@ -1,128 +1,95 @@
 import 'dart:async';
 import 'dart:convert';
-//import 'dart:developer' as developer;
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:equatable/equatable.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:transcriber_whisper/models/data_model.dart';
-import 'package:transcriber_whisper/mockData/textotest.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
+import 'package:transcriber_whisper/segment_context_menu.dart';
+import 'package:transcriber_whisper/transcribe_state.dart';
+
+import 'mockData/textotest.dart';
+
 
 class TranscribeCubit extends Cubit<TranscribeState> {
-  final String TAG = "TranscribeCubit: ";
-
-  Transcription? transcription;
-
-  final AudioPlayer audioPlayer = AudioPlayer();
-
-  //late AudioCache audioPlayer;
-
-  String audioFilePath = "";
-  List<double> samples = [];
-  late int totalSamples;
+  TranscribeCubit() : super(const TranscribeState(status: TranscribeStatus.initial)) {
+    //initSocket();
+    initAudioPlayer();
+  }
 
   final ScrollController scrollController = ScrollController();
-  //double lastpos = -1;
-  final double _scrollMargin = 0.1;
-  //final GlobalKey slidingTextKey = GlobalKey();
-  bool _userSelectedWord = false;
-  bool _autoScrollEnabled = true;
-  String? melSpectrogramBase64;
-  List<List<double>>? melSpectrogramData;
-  late Duration maxDuration;
-  late Duration elapsedDuration;
-
-  String? waveformImageBase64;
-
-  bool isRecording = false;
-
+  final AudioPlayer audioPlayer = AudioPlayer();
   late IO.Socket socket;
-  List<String> logs = [];
-
-  // New variables for debouncing
-  DateTime? _lastForceCurrentWordCall;
-  final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 200);
-  // New variable to control if a word is playing
+  Transcription? transcription;
+  bool _autoScrollEnabled = true;
+  bool _userSelectedWord = false;
   bool _isPlayingWord = false;
   Timer? _wordPlayTimer;
+  DateTime? _lastForceCurrentWordCall;
+  final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 100);
+  final int totalSamples = 512;
 
-  TranscribeCubit() : super(TranscribeState(status: TranscribeStatus.initial)) {
-    totalSamples = 10000;
-    maxDuration = const Duration(milliseconds: 1000);
+  static Map<String, Color> availableTags = {
+    "Omisión": Colors.red,
+    "Relectura": Colors.green,
+    "Repetición": Colors.blue,
+    "Corrección": Colors.purple,
+    'Tag5': Colors.orange,
+    'Tag6': Colors.pink,
 
+  };
+
+  void initSocket() {
+    socket = IO.io('http://192.168.1.10:5000', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': true,
+    });
+    socket.onConnect((_) {
+      print('connect');
+      emit(state.copyWith(status: TranscribeStatus.loaded));
+    });
+    socket.onDisconnect((_) => print('disconnect'));
+    socket.on('connect_error', (data) {
+      print('connect_error: $data');
+      emit(state.copyWith(status: TranscribeStatus.noserver));
+    });
+    socket.on('connect_timeout', (data) {
+      print('connect_timeout: $data');
+      emit(state.copyWith(status: TranscribeStatus.noserver));
+    });
+  }
+
+  void initAudioPlayer() {
     audioPlayer.onDurationChanged.listen((Duration d) {
-      maxDuration = d;
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioDuration: d)));
     });
     audioPlayer.onPositionChanged.listen((Duration p) {
-      elapsedDuration = p;
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioPosition: p)));
-      updateCurrentWord(); // Mantenemos esta linea
+      updateCurrentWord();
     });
-
     audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
-      switch (s) {
-        case PlayerState.playing:
-          emit(state.copyWith(status: TranscribeStatus.isPlayerplaying));
-          break;
-        case PlayerState.paused:
-          emit(state.copyWith(status: TranscribeStatus.isPlayerpause));
-          break;
-        case PlayerState.completed:
-          emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
-          break;
-        case PlayerState.stopped:
-          emit(state.copyWith(status: TranscribeStatus.isPlayerstopped));
-          break;
-        case PlayerState.disposed:
-          emit(state.copyWith(status: TranscribeStatus.isPlayerdisposed));
-          break;
+      if (s == PlayerState.playing) {
+        emit(state.copyWith(status: TranscribeStatus.isPlayerplaying));
+      } else if (s == PlayerState.paused) {
+        emit(state.copyWith(status: TranscribeStatus.isPlayerpause));
+      } else if (s == PlayerState.stopped) {
+        emit(state.copyWith(status: TranscribeStatus.isPlayerstopped));
+      } else if (s == PlayerState.completed) {
+        emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
       }
     });
-
     audioPlayer.onPlayerComplete.listen((event) {
-      elapsedDuration = maxDuration;
+      emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
     });
-    connectToServer();
-  }
 
-  void connectToServer() {
-    try {
-      // Configure socket transports must be sepecified
-      socket = IO.io('http://127.0.0.1:5000', <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': false,
-      });
-      socket.connect();
-      socket.onConnect((_) {
-        print('connect');
-        socket.emit('msg', 'test');
-      });
-      socket.on('log', (data) {
-        print("log: $data");
-        // Crear una nueva lista en lugar de modificar la existente
-        List<String> newLogs = List<String>.from(state.logs_mfa ?? []);
-        newLogs.add(data['data']);
-        emit(state.copyWith(logs_mfa: newLogs));
-      });
-      socket.on('my response', (data) {
-        print(data);
-      });
-      socket.onDisconnect((_) => print('disconnect'));
-      socket.on('fromServer', (_) => print("from server..."));
-    } catch (e) {
-      print(e.toString());
-    }
   }
 
   Future<void> alignAudio(PlatformFile audioFile, String text) async {
@@ -177,17 +144,18 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     }
   }
 
+
   Future<void> transcribeAudio(PlatformFile audioFile) async {
     emit(state.copyWith(status: TranscribeStatus.loading));
-    audioFilePath = audioFile.path ?? "";
-    emit(state.copyWith(extradata: state.extradata?.copyWith(audioFilePath: audioFile.path)));
-
     try {
       //final url = Uri.parse('http://127.0.0.1:5001/transcribe');
       final url = Uri.parse('https://infanciadigital.duckdns.org/transcriber/transcribe');
       final headers = {'Content-Type': 'application/octet-stream'};
-
       Uint8List? fileBytes;
+      String audioFilePath = "";
+      if (audioFile.path != null) {
+        audioFilePath = audioFile.path!;
+      }
       if (audioFile.bytes != null) {
         fileBytes = audioFile.bytes;
       } else if (audioFile.path != null) {
@@ -203,16 +171,16 @@ class TranscribeCubit extends Cubit<TranscribeState> {
 
         transcription = Transcription.fromListMap(jsonResponse['transcription']);
         //fullTextTranscription = _transcription!.fulltext!;
-        melSpectrogramBase64 = jsonResponse['mel_spectrogram'];
-        waveformImageBase64 = jsonResponse['waveform_image'];
+        //melSpectrogramBase64 = jsonResponse['mel_spectrogram'];
+        //waveformImageBase64 = jsonResponse['waveform_image'];
 
         emit(
           state.copyWith(
             status: TranscribeStatus.loaded,
             transcription: transcription,
-            melSpectrogramBase64: melSpectrogramBase64,
+            //melSpectrogramBase64: melSpectrogramBase64,
             //samples: samples,
-            waveformImageBase64: waveformImageBase64,
+            //waveformImageBase64: waveformImageBase64,
           ),
         );
         //await audioPlayer.play(audioFilePath, isLocal: true);
@@ -221,11 +189,18 @@ class TranscribeCubit extends Cubit<TranscribeState> {
         //await loadSamples(audioFilePath);
       } else {
         print('Error: ${response.statusCode}');
-        emit(state.copyWith(status: TranscribeStatus.error));
+        emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error en la respuesta: ${response.statusCode}"));
       }
     } catch (e) {
-      print('Error: $e');
-      emit(state.copyWith(status: TranscribeStatus.error));
+      String errorMessage = "Error desconocido";
+      if (e is SocketException) {
+        errorMessage = "Error de conexión a internet";
+      } else if (e is HttpException) {
+        errorMessage = "Error de comunicación con el servidor";
+      } else if (e is Exception) {
+        errorMessage = e.toString();
+      }print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: errorMessage));
     } finally {
       emit(state.copyWith(status: TranscribeStatus.loaded));
     }
@@ -243,65 +218,76 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       transcribeAudio(file);
       //alignAudio(file, "Nadie te puede salvar");
     } else {
-      // User canceled the picker
+      // User canceled the picker, do nothing
+      print("User canceled the picker");
     }
   }
 
-  List<double> loadparseJson(String jsonBody) {
-    final data = jsonDecode(jsonBody);
-    final List<double> points = List.castFrom(data['data']);
-    List<double> filteredData = [];
-    // Change this value to number of audio samples you want.
-    // Values between 256 and 1024 are good for showing [RectangleWaveform] and [SquigglyWaveform]
-    // While the values above them are good for showing [PolygonWaveform]
-    int samples = totalSamples;
-    final double blockSize = points.length / samples;
-
-    for (int i = 0; i < samples; i++) {
-      final double blockStart = blockSize * i; // the location of the first sample in the block
-      double sum = 0;
-      for (int j = 0; j < blockSize; j++) {
-        sum =
-            sum +
-            points[(blockStart + j).toInt()]
-                .toDouble(); // find the sum of all the samples in the block
-      }
-      filteredData.add(
-        (sum / blockSize).toDouble(),
-      ); // take the average of the block and add it to the filtered data
-    }
-    return filteredData;
-  }
-
-  int _binarySearch(double target) {
-    if (transcription == null) return -1;
-    int left = 0;
-    int right = transcription!.segments.length - 1;
-    int result = -1;
-
-    while (left <= right) {
-      int mid = left + ((right - left) ~/ 2);
-      var wordData = transcription!.segments[mid];
-      double start = wordData.start * 1000;
-      double end = wordData.end * 1000;
-
-      if (target >= start && target <= end) {
-        result = mid;
-        return result;
-      } else if (target < start) {
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-    return result;
-  }
-
-  Future<void> useFakeTranscription() async {
-    transcription = Transcription.fromListMap(textofake);
+  Future<void> useMockTranscription() async {
+    transcription = Transcription.fromListMap(textoMock);
     //await audioPlayer.setSource(DeviceFileSource(audioFilePath));
     await audioPlayer.setSource(AssetSource('9183-2-2660_16000hz.wav'));
     emit(state.copyWith(status: TranscribeStatus.loaded, transcription: transcription)); /**/
+  }
+
+  void toggleEditMode() {
+    emit(state.copyWith(editMode: !state.editMode));
+  }
+
+  void addTagToSegment(int index, String tag) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.segments.length) {
+      return;
+    }
+    final segment = state.transcription!.segments[index];
+    final newTags = List<String>.from(segment.tags)..add(tag);
+    final newSegment = segment.copyWith(tags: newTags);
+    final newSegments = List<Segment>.from(state.transcription!.segments)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(segments: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
+  }
+
+  void removeTagFromSegment(int index, String tag) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.segments.length) {
+      return;
+    }
+    final segment = state.transcription!.segments[index];
+    final newTags = List<String>.from(segment.tags)..remove(tag);
+    final newSegment = segment.copyWith(tags: newTags);
+    final newSegments = List<Segment>.from(state.transcription!.segments)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(segments: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
+  }
+
+  void editSegment(Segment newSegment) {
+    if (state.transcription == null) return;
+    final index = state.transcription!.segments.indexOf(newSegment);
+    if (index == -1) return;
+    final newSegments = List<Segment>.from(state.transcription!.segments)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(segments: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
+  }
+
+  void editSegments(List<int> indexes, String newText) {
+    if (state.transcription == null || indexes.isEmpty) return;
+    final newSegments = List<Segment>.from(state.transcription!.segments);
+    for (int index in indexes) {
+      if (index >= 0 && index < newSegments.length) {
+        final segment = newSegments[index];
+        final newSegment = segment.copyWith(word: newText);
+        newSegments[index] = newSegment;
+      }
+    }
+    final newTranscription = state.transcription!.copyWith(segments: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
+  }
+
+  void deleteSegment(int index) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.segments.length) {
+      return;
+    }
+    final newSegments = List<Segment>.from(state.transcription!.segments)..removeAt(index);
+    final newTranscription = state.transcription!.copyWith(segments: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
   }
 
   void setAutoScroll(bool value) {
@@ -309,41 +295,31 @@ class TranscribeCubit extends Cubit<TranscribeState> {
   }
 
   void updateCurrentWord() {
-    if (transcription == null || _userSelectedWord) return;
-
-    int newIndex = _binarySearch(state.extradata!.audioPosition.inMilliseconds.toDouble());
-
-    if (newIndex != state.extradata!.currentWordIndex) {
-      print("updateCurrentWord newIndex: $newIndex");
-      emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: newIndex)));
+    if (state.transcription == null || state.transcription!.segments.isEmpty) return;
+    if (_userSelectedWord) return;
+    final currentPosition = state.extradata!.audioPosition;
+    if (currentPosition == null) return;
+    final currentMillis = currentPosition.inMilliseconds;
+    final index = _binarySearch(state.transcription!.segments, currentMillis);
+    if (index != -1) {
+      emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
     }
   }
 
   void forceCurrentWord(int index) {
+    if (state.transcription == null || state.transcription!.segments.isEmpty) return;
     final now = DateTime.now();
-    if (_lastForceCurrentWordCall != null &&
-        now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      print("forceCurrentWord: Ignorando llamada rápida");
-      return; // Ignorar la llamada si es demasiado rápida
+    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
+      return;
     }
     _lastForceCurrentWordCall = now;
-
-    print("forceCurrentWord index: $index");
-
     _userSelectedWord = true;
-
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
-
-    final segment = transcription!.segments[index];
+    final segment = state.transcription!.segments[index];
     final startMillis = (segment.start * 1000).toInt();
     final endMillis = (segment.end * 1000).toInt();
-    print("Word start: ${startMillis}ms");
-    print("Word end: ${endMillis}ms");
-    print("Audio position: ${state.extradata!.audioPosition.inMilliseconds}ms");
-
     audioPlayer.seek(Duration(milliseconds: startMillis));
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
 
-    // Cancelar el timer anterior si existe
     if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
       _wordPlayTimer!.cancel();
     }
@@ -375,81 +351,182 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     );
   }
 
-  @override
-  Future<void> close() {
-    socket.disconnect();
-    audioPlayer.dispose();
-    scrollController.dispose();
-
-    return super.close();
-  }
-}
-
-/////////// State
-
-enum TranscribeStatus {
-  initial,
-  loaded,
-  loading,
-  error,
-  noserver,
-  isPlayerplaying,
-  isPlayerpause,
-  isPlayerstopped,
-  isPlayercompleted,
-  isPlayerdisposed,
-}
-
-class TranscribeState extends Equatable {
-  final TranscribeStatus status;
-  final Transcription? transcription;
-  final Data? extradata;
-  final String? melSpectrogramBase64;
-  final List<List<double>>? melSpectrogramData;
-  //final List<double> samples;
-  final String? waveformImageBase64;
-  final List<String>? logs_mfa;
-
-  const TranscribeState({
-    required this.status,
-    this.transcription,
-    this.extradata = const Data(),
-    this.melSpectrogramBase64,
-    this.melSpectrogramData,
-    //this.samples = const [],
-    this.waveformImageBase64,
-    this.logs_mfa,
-  });
-
-  TranscribeState copyWith({
-    TranscribeStatus? status,
-    Transcription? transcription,
-    Data? extradata,
-    String? melSpectrogramBase64,
-    List<List<double>>? melSpectrogramData,
-    //List<double>? samples,
-    String? waveformImageBase64,
-    List<String>? logs_mfa,
-  }) {
-    return TranscribeState(
-      status: status ?? this.status,
-      transcription: transcription ?? this.transcription,
-      extradata: extradata ?? this.extradata,
-      melSpectrogramBase64: melSpectrogramBase64 ?? this.melSpectrogramBase64,
-      melSpectrogramData: melSpectrogramData ?? this.melSpectrogramData,
-      //samples: samples ?? this.samples,
-      waveformImageBase64: waveformImageBase64 ?? this.waveformImageBase64,
-      logs_mfa: logs_mfa ?? this.logs_mfa,
+  void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
+    List<String> selectedTags = [];
+    if (selectedIndexes.isNotEmpty) {
+      selectedTags = state.transcription!.segments[selectedIndexes.first].tags;
+    } else {
+      final index = _getSegmentIndexFromOffset(position);
+      if (index != -1) {
+        selectedTags = state.transcription!.segments[index].tags;
+      }
+    }
+    showDialog(
+        context: context,
+        builder: (context) {
+      return AlertDialog(
+          content: SegmentContextMenu(
+          availableTags: availableTags.keys.toList(),
+    selectedTags: selectedTags,
+    editMode: state.editMode,
+    onTagAdded: (tag) {
+    if (selectedIndexes.isNotEmpty) {
+    for (int index in selectedIndexes) {
+    addTagToSegment(index, tag);
+    }
+    } else {
+    final index = _getSegmentIndexFromOffset(position);
+    if (index != -1) {
+    addTagToSegment(index, tag);
+    }
+    }
+    },
+    onTagRemoved: (tag) {
+    if (selectedIndexes.isNotEmpty) {
+    for (int index in selectedIndexes) {
+    removeTagFromSegment(index, tag);
+    }
+    } else {
+    final index = _getSegmentIndexFromOffset(position);
+    if (index != -1) {
+    removeTagFromSegment(index, tag);
+    }
+    }
+    },
+    onEdit: () {
+    Navigator.of(context).pop();
+    if (selectedIndexes.isNotEmpty) {
+    _editSegments(context, selectedIndexes);
+    } else {
+    final index = _getSegmentIndexFromOffset(position);
+    if (index != -1) {
+    _editSegment(context, index);
+    }
+    }
+    },
+    onDelete: () {
+    Navigator.of(context).pop();
+    if (selectedIndexes.isNotEmpty) {
+    for (int index in selectedIndexes) {
+    deleteSegment(index);
+    }
+    } else {
+    final index = _getSegmentIndexFromOffset(position);
+    if (index != -1) {
+      deleteSegment(index);
+    }
+    }
+    },
+            selectedIndexes: selectedIndexes,
+          ),
+      );
+        },
     );
   }
 
-  @override
-  List<Object?> get props => [
-    status,
-    transcription,
-    extradata,
-    melSpectrogramBase64,
-    waveformImageBase64,
-    logs_mfa,
-  ];
+  int _getSegmentIndexFromOffset(Offset position) {
+    if (state.transcription == null) return -1;
+    final RenderBox box = scrollController.position.context.storageContext.findRenderObject() as RenderBox;
+    final result = BoxHitTestResult();
+    final local = box.globalToLocal(position);
+    if (box.hitTest(result, position: local)) {
+      for (final hit in result.path) {
+        final target = hit.target;
+        if (target is RenderParagraph) {
+          final offset = target.getPositionForOffset(local);
+          final wordIndex = offset.offset;
+          return wordIndex;
+        }
+      }
+    }
+    return -1;
+  }
+
+  int _binarySearch(List<Segment> segments, int target) {
+    int left = 0;
+    int right = segments.length - 1;
+    while (left <= right) {
+      int mid = left + ((right - left) ~/ 2);
+      final segment = segments[mid];
+      final startMillis = (segment.start * 1000).toInt();
+      final endMillis = (segment.end * 1000).toInt();
+      if (target >= startMillis && target <= endMillis) {
+        return mid;
+      } else if (target < startMillis) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+    return -1;
+  }
+
+  void _editSegment(BuildContext context, int index) {
+    final segment = state.transcription!.segments[index];
+    String newText = segment.word;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Segmento'),
+          content: TextField(
+            controller: TextEditingController(text: newText),
+            onChanged: (value) {
+              newText = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                final newSegment = segment.copyWith(word: newText);
+                editSegment(newSegment);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editSegments(BuildContext context, List<int> indexes) {
+    if (indexes.isEmpty) return;
+    String newText = state.transcription!.segments[indexes.first].word;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Segmentos'),
+          content: TextField(
+            controller: TextEditingController(text: newText),
+            onChanged: (value) {
+              newText = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                editSegments(indexes, newText);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
