@@ -55,14 +55,8 @@ class _HomePage3State extends State<HomePage3> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        ElevatedButton(
-                          onPressed: () async => getIt<TranscribeCubit>().pickAudioFile(),
-                          child: const Text('Cargar Audio'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async => getIt<TranscribeCubit>().useMockTranscription(),
-                          child: const Text('Usar Mock data'),
-                        ),
+                        ElevatedButton(onPressed: () async => getIt<TranscribeCubit>().pickAudioFile(), child: const Text('Cargar Audio')),
+                        ElevatedButton(onPressed: () async => getIt<TranscribeCubit>().useMockTranscription(), child: const Text('Usar Mock data')),
                       ],
                     ),
                     // interfaz grafica principal
@@ -71,18 +65,8 @@ class _HomePage3State extends State<HomePage3> {
                           child: Column(
                             children: [
                               AudioPlayerWidget(),
-                              if (state.waveformImageBase64 != null)
-                                Image.memory(
-                                  base64Decode(state.waveformImageBase64!),
-                                  width: 500,
-                                  height: 100,
-                                ),
-                              if (state.melSpectrogramBase64 != null)
-                                Image.memory(
-                                  base64Decode(state.melSpectrogramBase64!),
-                                  width: 500,
-                                  height: 100,
-                                ),
+                              if (state.waveformImageBase64 != null) Image.memory(base64Decode(state.waveformImageBase64!), width: 500, height: 100),
+                              if (state.melSpectrogramBase64 != null) Image.memory(base64Decode(state.melSpectrogramBase64!), width: 500, height: 100),
                               SingleChildScrollView(
                                 controller: _scrollController,
                                 scrollDirection: Axis.horizontal,
@@ -113,15 +97,17 @@ class _HomePage3State extends State<HomePage3> {
                                         onAutoScrollChanged: (value) {
                                           getIt<TranscribeCubit>().setAutoScroll(value);
                                         },
+                                        onWordTap: (int) {},
                                       ),
                                     ),
                                     Expanded(
                                       child: SelectableRichText(
-                                        segments: state.transcription!.segments,
                                         currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                                         onWordTap: (index) {
                                           getIt<TranscribeCubit>().forceCurrentWord(index);
                                         },
+                                        transcription: state.transcription!,
+                                        audioPosition: state.extradata!.audioPosition,
                                       ),
                                     ),
                                   ],
@@ -136,14 +122,7 @@ class _HomePage3State extends State<HomePage3> {
               );
             },
           ),
-          FloatingWindow(
-            title: "MFA Logs",
-            initialX: 10,
-            initialY: 10,
-            initialWidth: 300,
-            initialHeight: 100,
-            child: MfaLogsWidget(),
-          ),
+          FloatingWindow(title: "MFA Logs", initialX: 10, initialY: 10, initialWidth: 300, initialHeight: 100, child: MfaLogsWidget()),
         ],
       ),
     );

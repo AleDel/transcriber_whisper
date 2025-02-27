@@ -9,44 +9,36 @@ import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
+import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 
 import '../transcribe_state.dart';
 
-class SlidingText extends StatefulWidget {
-  final Transcription transcription;
-  final Duration audioPosition;
-  final int currentWordIndex;
+class SlidingText extends TranscriptionWidget {
   final String? waveformImageBase64;
   final ScrollController scrollController;
-  final Function(int) onWordTap;
-  final bool autoScrollEnabled;
-  final ValueChanged<bool>? onAutoScrollChanged;
 
   const SlidingText({
     Key? key,
-    required this.transcription,
-    required this.audioPosition,
-    required this.currentWordIndex,
+    required super.transcription,
+    required super.audioPosition,
+    required super.currentWordIndex,
     this.waveformImageBase64,
     required this.scrollController,
-    required this.onWordTap,
-    this.autoScrollEnabled = true,
-    this.onAutoScrollChanged,
+    required super.onWordTap,
+    super.autoScrollEnabled = true,
+    super.onAutoScrollChanged,
   }) : super(key: key);
 
   @override
   State<SlidingText> createState() => _SlidingTextState();
 }
 
-class _SlidingTextState extends State<SlidingText> {
-  late bool _internalAutoScrollEnabled = true;
-
+class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
   @override
   void initState() {
     super.initState();
-    _internalAutoScrollEnabled = widget.autoScrollEnabled;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrentWord();
+      scrollToCurrentWord();
     });
     // Previene el menú contextual del navegador
     html.document.onContextMenu.listen((event) => event.preventDefault());
@@ -57,7 +49,7 @@ class _SlidingTextState extends State<SlidingText> {
     super.didUpdateWidget(oldWidget);
     if (widget.currentWordIndex != oldWidget.currentWordIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToCurrentWord();
+        scrollToCurrentWord();
       });
     }
   }
@@ -67,8 +59,9 @@ class _SlidingTextState extends State<SlidingText> {
     super.dispose();
   }
 
-  void _scrollToCurrentWord() {
-    if (!_internalAutoScrollEnabled) return;
+  @override
+  void scrollToCurrentWord() {
+    if (!internalAutoScrollEnabled) return;
     if (widget.currentWordIndex == -1 || widget.transcription.segments.isEmpty || !widget.scrollController.hasClients) {
       return;
     }
@@ -90,54 +83,6 @@ class _SlidingTextState extends State<SlidingText> {
     widget.scrollController.animateTo(scrollOffset > 0 ? scrollOffset : 0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
-  // Función para calcular el color de fondo en función de la probabilidad
-  Color _getBackgroundColor(double probability) {
-    // Puedes ajustar estos valores para cambiar la gradación de colores
-    const Color colorLow = Colors.red;
-    const Color colorHigh = Colors.green;
-
-    // Asegurarse de que la probabilidad esté entre 0 y 1
-    probability = probability.clamp(0.0, 1.0);
-
-    // Calcular el color interpolando entre colorLow y colorHigh
-    return Color.lerp(colorLow, colorHigh, probability)!;
-  }
-
-  Color _getMixedTagColor(List<String> tags) {
-    if (tags.isEmpty) {
-      return Colors.transparent;
-    }
-
-    if (tags.length == 1) {
-      return TranscribeCubit.availableTags[tags.first] ?? Colors.transparent;
-    }
-
-    List<Color> tagColors = tags.map((tag) => TranscribeCubit.availableTags[tag] ?? Colors.transparent).toList();
-    return _mixMultipleColors(tagColors);
-  }
-
-  Color _mixMultipleColors(List<Color> colors) {
-    if (colors.isEmpty) {
-      return Colors.transparent;
-    }
-
-    if (colors.length == 1) {
-      return colors.first;
-    }
-
-    int totalRed = 0;
-    int totalGreen = 0;
-    int totalBlue = 0;
-
-    for (Color color in colors) {
-      totalRed += color.red;
-      totalGreen += color.green;
-      totalBlue += color.blue;
-    }
-
-    return Color.fromARGB(255, totalRed ~/ colors.length, totalGreen ~/ colors.length, totalBlue ~/ colors.length);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.transcription.segments.isEmpty) {
@@ -154,18 +99,6 @@ class _SlidingTextState extends State<SlidingText> {
             double totalTextWidth = (totalDuration / 1) * 200;
             return Column(
               children: [
-                /*Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    const Text("Edit Mode"), // Nuevo: Switch para modo edición
-                    Switch(
-                      value: state.editMode,
-                      onChanged: (value) {
-                        context.read<TranscribeCubit>().toggleEditMode();
-                      },
-                    ),
-                  ],
-                ),*/
                 Container(
                   width: totalTextWidth,
                   height: 60, // Altura fija
@@ -204,8 +137,8 @@ class _SlidingTextState extends State<SlidingText> {
                         double wordWidth = ((wordEnd - wordStart) / totalDuration) * totalTextWidth;
 
                         // Calcular el color de fondo en función de la probabilidad
-                        Color backgroundColor = _getBackgroundColor(wordData.probability);
-                        Color tagColor = _getMixedTagColor(wordData.tags);
+                        Color backgroundColor = getBackgroundColor(wordData.probability);
+                        Color tagColor = getMixedTagColor(wordData.tags);
                         return Positioned(
                           left: wordPosition,
                           top: 0,
@@ -214,7 +147,7 @@ class _SlidingTextState extends State<SlidingText> {
                             onPointerDown: (event) {
                               if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
                                 // Clic secundario (clic derecho)
-                                context.read<TranscribeCubit>().showContextMenu(context, event.position, [widget.transcription.segments.indexOf(wordData)]);
+                                showContextMenu(context, event.position, [widget.transcription.segments.indexOf(wordData)]);
                               }
                             },
                             child: GestureDetector(
@@ -222,7 +155,7 @@ class _SlidingTextState extends State<SlidingText> {
                                 widget.onWordTap(widget.transcription.segments.indexOf(wordData));
                               },
                               onLongPressStart: (details) {
-                                context.read<TranscribeCubit>().showContextMenu(context, details.globalPosition, [widget.transcription.segments.indexOf(wordData)]);
+                                showContextMenu(context, details.globalPosition, [widget.transcription.segments.indexOf(wordData)]);
                               },
                               child: Column(
                                 children: [

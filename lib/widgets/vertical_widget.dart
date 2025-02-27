@@ -2,46 +2,39 @@ import 'dart:html' as html; // Importa la librería dart:html
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 
-class VerticalTranscription extends StatefulWidget {
-  final Transcription transcription;
-  final Duration audioPosition;
-  final int currentWordIndex;
+class VerticalTranscription extends TranscriptionWidget {
   final Function(Duration, int) onSeek;
-  final bool autoScrollEnabled;
-  final ValueChanged<bool>? onAutoScrollChanged;
 
   const VerticalTranscription({
     Key? key,
-    required this.transcription,
-    required this.audioPosition,
-    required this.currentWordIndex,
+    required super.transcription,
+    required super.audioPosition,
+    required super.currentWordIndex,
     required this.onSeek,
-    this.autoScrollEnabled = true,
-    this.onAutoScrollChanged,
+    super.autoScrollEnabled = true,
+    super.onAutoScrollChanged,
+    required super.onWordTap,
   }) : super(key: key);
 
   @override
   State<VerticalTranscription> createState() => _VerticalTranscriptionState();
 }
 
-class _VerticalTranscriptionState extends State<VerticalTranscription> {
+class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTranscription> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
-  late bool _internalAutoScrollEnabled = true;
-  final GetIt getIt = GetIt.instance;
 
   @override
   void initState() {
     super.initState();
-    _internalAutoScrollEnabled = widget.autoScrollEnabled;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrentWord();
+      scrollToCurrentWord();
     });
     // Previene el menú contextual del navegador
     html.document.onContextMenu.listen((event) => event.preventDefault());
@@ -52,7 +45,7 @@ class _VerticalTranscriptionState extends State<VerticalTranscription> {
     super.didUpdateWidget(oldWidget);
     if (widget.currentWordIndex != oldWidget.currentWordIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToCurrentWord();
+        scrollToCurrentWord();
       });
     }
   }
@@ -62,10 +55,16 @@ class _VerticalTranscriptionState extends State<VerticalTranscription> {
     super.dispose();
   }
 
-  void _scrollToCurrentWord() {
-    if (!_internalAutoScrollEnabled) return;
+  @override
+  void scrollToCurrentWord() {
+    if (!internalAutoScrollEnabled) return;
     if (widget.currentWordIndex == -1 || widget.transcription.segments.isEmpty) return;
-    _itemScrollController.scrollTo(index: widget.currentWordIndex, duration: const Duration(milliseconds: 300), curve: Curves.easeInOutCubic, alignment: 0.5);
+    _itemScrollController.scrollTo(
+      index: widget.currentWordIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+      alignment: 0.5,
+    );
   }
 
   @override
@@ -79,15 +78,9 @@ class _VerticalTranscriptionState extends State<VerticalTranscription> {
               children: [
                 const Text("Auto Scroll"),
                 Switch(
-                  value: _internalAutoScrollEnabled,
+                  value: internalAutoScrollEnabled,
                   onChanged: (value) {
-                    setState(() {
-                      _internalAutoScrollEnabled = value;
-                    });
-                    getIt<TranscribeCubit>().setAutoScroll(value);
-                    if (widget.onAutoScrollChanged != null) {
-                      widget.onAutoScrollChanged!(value);
-                    }
+                    setAutoScroll(value);
                   },
                 ),
               ],
@@ -105,17 +98,16 @@ class _VerticalTranscriptionState extends State<VerticalTranscription> {
                   return Listener(
                     onPointerDown: (event) {
                       if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
-                        // Clic secundario (clic derecho)
-                        getIt<TranscribeCubit>().showContextMenu(context, event.position, [index]);
+                        showContextMenu(context, event.position, [index]);
                       }
                     },
                     child: GestureDetector(
                       onTap: () {
                         widget.onSeek(Duration(milliseconds: startMillis), index);
+                        widget.onWordTap(index);
                       },
                       onLongPressStart: (details) {
-                        // Long press
-                        getIt<TranscribeCubit>().showContextMenu(context, details.globalPosition, [index]);
+                        showContextMenu(context, details.globalPosition, [index]);
                       },
                       child: Container(
                         color: isCurrentWord ? Colors.yellow.withOpacity(0.5) : null,

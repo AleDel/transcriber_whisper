@@ -148,8 +148,8 @@ class TranscribeCubit extends Cubit<TranscribeState> {
   Future<void> transcribeAudio(PlatformFile audioFile) async {
     emit(state.copyWith(status: TranscribeStatus.loading));
     try {
-      //final url = Uri.parse('http://127.0.0.1:5001/transcribe');
-      final url = Uri.parse('https://infanciadigital.duckdns.org/transcriber/transcribe');
+      final url = Uri.parse('http://127.0.0.1:5001/transcribe');
+      //final url = Uri.parse('https://infanciadigital.duckdns.org/transcriber/transcribe');
       final headers = {'Content-Type': 'application/octet-stream'};
       Uint8List? fileBytes;
       String audioFilePath = "";

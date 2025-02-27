@@ -2,26 +2,20 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 
-import '../transcribe_state.dart';
-
-class SelectableRichText extends StatefulWidget {
-  final List<Segment> segments;
-  final int currentWordIndex;
-  final Function(int) onWordTap;
-
-  const SelectableRichText({Key? key, required this.segments, required this.currentWordIndex, required this.onWordTap}) : super(key: key);
+class SelectableRichText extends TranscriptionWidget {
+  const SelectableRichText({Key? key, required super.transcription, required super.audioPosition, required super.currentWordIndex, required super.onWordTap}) : super(key: key);
 
   @override
   State<SelectableRichText> createState() => _SelectableRichTextState();
 }
 
-class _SelectableRichTextState extends State<SelectableRichText> {
+class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichText> {
   final GlobalKey _textKey = GlobalKey();
-  final GetIt getIt = GetIt.instance;
   bool _internalPlayAndStopWordOnSelect = true;
   int? _selectionStart;
   int? _selectionEnd;
@@ -48,54 +42,19 @@ class _SelectableRichTextState extends State<SelectableRichText> {
 
   Color? _getWordBackgroundColor(int index) {
     final bool isSelected = _isWordSelected(index);
-    final bool hasTags = widget.segments[index].tags.isNotEmpty;
+    final bool hasTags = widget.transcription.segments[index].tags.isNotEmpty;
 
     if (isSelected && hasTags) {
-      final Color tagColor = _getMixedTagColor(widget.segments[index].tags);
+      final Color tagColor = getMixedTagColor(widget.transcription.segments[index].tags);
       final Color selectionColor = Colors.grey.withOpacity(0.5);
       return _blendColors(tagColor, selectionColor);
     } else if (isSelected) {
       return Colors.grey.withOpacity(0.5);
     } else if (hasTags) {
-      return _getMixedTagColor(widget.segments[index].tags);
+      return getMixedTagColor(widget.transcription.segments[index].tags);
     }
 
     return null;
-  }
-
-  Color _getMixedTagColor(List<String> tags) {
-    if (tags.isEmpty) {
-      return Colors.transparent;
-    }
-
-    if (tags.length == 1) {
-      return TranscribeCubit.availableTags[tags.first] ?? Colors.transparent;
-    }
-
-    List<Color> tagColors = tags.map((tag) => TranscribeCubit.availableTags[tag] ?? Colors.transparent).toList();
-    return _mixMultipleColors(tagColors);
-  }
-
-  Color _mixMultipleColors(List<Color> colors) {
-    if (colors.isEmpty) {
-      return Colors.transparent;
-    }
-
-    if (colors.length == 1) {
-      return colors.first;
-    }
-
-    int totalRed = 0;
-    int totalGreen = 0;
-    int totalBlue = 0;
-
-    for (Color color in colors) {
-      totalRed += color.red;
-      totalGreen += color.green;
-      totalBlue += color.blue;
-    }
-
-    return Color.fromARGB(255, totalRed ~/ colors.length, totalGreen ~/ colors.length, totalBlue ~/ colors.length);
   }
 
   Color _blendColors(Color color1, Color color2) {
@@ -137,13 +96,12 @@ class _SelectableRichTextState extends State<SelectableRichText> {
                         if (renderObject is RenderBox) {
                           final localPosition = renderObject.globalToLocal(event.position);
                           final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          getIt<TranscribeCubit>().showContextMenu(context, event.position, [wordIndex]);
+                          showContextMenu(context, event.position, [wordIndex]);
                         }
                       }
                     },
                     child: GestureDetector(
                       onTapDown: (details) {
-                        // Detectar clic izquierdo
                         final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
                         if (renderObject is RenderBox) {
                           final localPosition = renderObject.globalToLocal(details.globalPosition);
@@ -180,7 +138,7 @@ class _SelectableRichTextState extends State<SelectableRichText> {
                           final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
                           final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
                           final List<int> selectedIndexes = List.generate(upper - lower + 1, (i) => lower + i);
-                          getIt<TranscribeCubit>().showContextMenu(context, details.globalPosition, selectedIndexes);
+                          showContextMenu(context, details.globalPosition, selectedIndexes);
                         }
                       },
                       onLongPressCancel: () {
@@ -193,7 +151,7 @@ class _SelectableRichTextState extends State<SelectableRichText> {
                         key: _textKey,
                         TextSpan(
                           children:
-                              widget.segments.asMap().entries.map((entry) {
+                              widget.transcription.segments.asMap().entries.map((entry) {
                                 int index = entry.key;
                                 var wordData = entry.value;
                                 return TextSpan(
@@ -217,13 +175,18 @@ class _SelectableRichTextState extends State<SelectableRichText> {
   int _findWordIndexFromTextPosition(TextPosition textPosition) {
     int wordIndex = 0;
     int currentPosition = 0;
-    for (int i = 0; i < widget.segments.length; i++) {
-      currentPosition += widget.segments[i].word.length + 1;
+    for (int i = 0; i < widget.transcription.segments.length; i++) {
+      currentPosition += widget.transcription.segments[i].word.length + 1;
       if (textPosition.offset <= currentPosition) {
         wordIndex = i;
         break;
       }
     }
     return wordIndex;
+  }
+
+  @override
+  void scrollToCurrentWord() {
+    // TODO: implement scrollToCurrentWord
   }
 }
