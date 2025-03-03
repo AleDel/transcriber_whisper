@@ -19,12 +19,12 @@ class AudioPlayerWidget extends StatelessWidget {
               children: [
                 IconButton(
                   icon: Icon(
-                    state.status == TranscribeStatus.isPlayerplaying
+                    state.playerStatus == PlayerStatus.playing
                         ? Icons.pause
                         : Icons.play_arrow,
                   ),
                   onPressed: () {
-                    if (state.status == TranscribeStatus.isPlayerplaying) {
+                    if (state.playerStatus == PlayerStatus.playing) {
                       cubit.audioPlayer.pause();
                     } else {
                       cubit.audioPlayer.resume();

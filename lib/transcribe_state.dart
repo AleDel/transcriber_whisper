@@ -1,80 +1,104 @@
 import 'package:equatable/equatable.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:transcriber_whisper/models/project.dart';
+import 'package:transcriber_whisper/models/session.dart';
 import 'package:transcriber_whisper/models/data_model.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 
 enum TranscribeStatus {
   initial,
-  loaded,
   loading,
+  loaded,
   error,
   noserver,
-  isPlayerplaying,
-  isPlayerpause,
-  isPlayerstopped,
-  isPlayercompleted,
-  isPlayerdisposed,
+}
+
+enum PlayerStatus {
+  initial,
+  playing,
+  paused,
+  stopped,
+  completed,
+  disposed,
 }
 
 class TranscribeState extends Equatable {
   final TranscribeStatus status;
-  final Transcription? transcription;
-  final Data? extradata;
-  final String? melSpectrogramBase64;
-  final List<List<double>>? melSpectrogramData;
-  //final List<double> samples;
-  final String? waveformImageBase64;
-  final List<String>? logs_mfa;
-  final bool editMode;
+  final PlayerStatus playerStatus;
   final String? errorMessage;
+  final String? errorDetails;
+  final Transcription? transcription;
+  final List<Project>? projects;
+  final Project? currentProject;
+  final List<PlatformFile> files;
+  final ExtraData? extradata;
+  final bool editMode;
+  final bool autoScrollEnabled;
+  final bool playAndStopWordOnSelect;
+  final List<String>? logs_mfa;
 
   const TranscribeState({
-    required this.status,
-    this.transcription,
-    this.extradata = const Data(),
-    this.melSpectrogramBase64,
-    this.melSpectrogramData,
-    //this.samples = const [],
-    this.waveformImageBase64,
-    this.logs_mfa,
-    this.editMode = true,
+    this.status = TranscribeStatus.initial,
+    this.playerStatus = PlayerStatus.initial,
     this.errorMessage,
+    this.errorDetails,
+    this.transcription,
+    this.projects,
+    this.currentProject,
+    this.files = const [],
+    this.extradata,
+    this.editMode = false,
+    this.autoScrollEnabled = false,
+    this.playAndStopWordOnSelect = false,
+    this.logs_mfa,
   });
 
   TranscribeState copyWith({
     TranscribeStatus? status,
-    Transcription? transcription,
-    Data? extradata,
-    String? melSpectrogramBase64,
-    List<List<double>>? melSpectrogramData,
-    //List<double>? samples,
-    String? waveformImageBase64,
-    List<String>? logs_mfa,
-    bool? editMode,
+    PlayerStatus? playerStatus,
     String? errorMessage,
+    String? errorDetails,
+    Transcription? transcription,
+    List<Project>? projects,
+    Project? currentProject,
+    List<PlatformFile>? files,
+    ExtraData? extradata,
+    bool? editMode,
+    bool? autoScrollEnabled,
+    bool? playAndStopWordOnSelect,
+    List<String>? logs_mfa,
   }) {
     return TranscribeState(
       status: status ?? this.status,
-      transcription: transcription ?? this.transcription,
-      extradata: extradata ?? this.extradata,
-      melSpectrogramBase64: melSpectrogramBase64 ?? this.melSpectrogramBase64,
-      melSpectrogramData: melSpectrogramData ?? this.melSpectrogramData,
-      //samples: samples ?? this.samples,
-      waveformImageBase64: waveformImageBase64 ?? this.waveformImageBase64,
-      logs_mfa: logs_mfa ?? this.logs_mfa,
-      editMode: editMode ?? this.editMode,
+      playerStatus: playerStatus ?? this.playerStatus,
       errorMessage: errorMessage ?? this.errorMessage,
+      errorDetails: errorDetails ?? this.errorDetails,
+      transcription: transcription ?? this.transcription,
+      projects: projects ?? this.projects,
+      currentProject: currentProject ?? this.currentProject,
+      files: files ?? this.files,
+      extradata: extradata ?? this.extradata,
+      editMode: editMode ?? this.editMode,
+      autoScrollEnabled: autoScrollEnabled ?? this.autoScrollEnabled,
+      playAndStopWordOnSelect: playAndStopWordOnSelect ?? this.playAndStopWordOnSelect,
+      logs_mfa: logs_mfa ?? this.logs_mfa,
     );
   }
 
   @override
   List<Object?> get props => [
     status,
-    transcription,
-    extradata,
-    melSpectrogramBase64,
-    waveformImageBase64,
-    logs_mfa,
-    editMode,
+    playerStatus,
     errorMessage,
+    errorDetails,
+    transcription,
+    projects,
+    currentProject,
+    files,
+    extradata,
+    editMode,
+    autoScrollEnabled,
+    playAndStopWordOnSelect,
+    logs_mfa,
   ];
 }

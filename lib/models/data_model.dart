@@ -1,42 +1,32 @@
 import 'package:equatable/equatable.dart';
 
-class Data extends Equatable {
-  final int currentWordIndex;
-  final Duration audioPosition;
-  final Duration audioDuration;
-  final String? audioFilePath;
+class ExtraData extends Equatable {
+  final Duration? audioDuration;
+  final Duration? audioPosition;
+  final int? currentWordIndex;
   final bool playAndStopWordOnSelect;
 
-  const Data({
-    this.currentWordIndex = -1,
-    this.audioPosition = Duration.zero,
-    this.audioDuration = Duration.zero,
-    this.audioFilePath,
-    this.playAndStopWordOnSelect = true,
+  const ExtraData({
+    this.audioDuration,
+    this.audioPosition,
+    this.currentWordIndex,
+    this.playAndStopWordOnSelect = false,
   });
 
-  Data copyWith({
-    int? currentWordIndex,
-    Duration? audioPosition,
+  ExtraData copyWith({
     Duration? audioDuration,
-    String? audioFilePath,
+    Duration? audioPosition,
+    int? currentWordIndex,
     bool? playAndStopWordOnSelect,
   }) {
-    return Data(
-      currentWordIndex: currentWordIndex ?? this.currentWordIndex,
-      audioPosition: audioPosition ?? this.audioPosition,
+    return ExtraData(
       audioDuration: audioDuration ?? this.audioDuration,
-      audioFilePath: audioFilePath ?? this.audioFilePath,
+      audioPosition: audioPosition ?? this.audioPosition,
+      currentWordIndex: currentWordIndex ?? this.currentWordIndex,
       playAndStopWordOnSelect: playAndStopWordOnSelect ?? this.playAndStopWordOnSelect,
     );
   }
 
   @override
-  List<Object?> get props => [
-    currentWordIndex,
-    audioPosition,
-    audioDuration,
-    audioFilePath,
-    playAndStopWordOnSelect,
-  ];
+  List<Object?> get props => [audioDuration, audioPosition, currentWordIndex, playAndStopWordOnSelect];
 }

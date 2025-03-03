@@ -17,18 +17,12 @@ class SelectableRichText extends TranscriptionWidget {
 class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichText> {
   final GlobalKey _textKey = GlobalKey();
   bool _internalPlayAndStopWordOnSelect = true;
-  int? _selectionStart;
-  int? _selectionEnd;
+  //int? _selectionStart; // Eliminado: Ahora se gestiona en la clase base
+  //int? _selectionEnd; // Eliminado: Ahora se gestiona en la clase base
+  List<int> _selectedIndexes = [];
 
   bool _isWordSelected(int index) {
-    if (_selectionStart == null || _selectionEnd == null) {
-      return false;
-    }
-    final int start = _selectionStart!;
-    final int end = _selectionEnd!;
-    final int lower = start < end ? start : end;
-    final int upper = start > end ? start : end;
-    return index >= lower && index <= upper;
+    return _selectedIndexes.contains(index);
   }
 
   int _findWordIndexFromOffset(Offset localPosition) {
@@ -96,7 +90,7 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
                         if (renderObject is RenderBox) {
                           final localPosition = renderObject.globalToLocal(event.position);
                           final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          showContextMenu(context, event.position, [wordIndex]);
+                          showContextMenu(event.position, wordIndexes: [wordIndex]);
                         }
                       }
                     },
@@ -115,8 +109,7 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
                           final localPosition = renderObject.globalToLocal(details.globalPosition);
                           final int wordIndex = _findWordIndexFromOffset(localPosition);
                           setState(() {
-                            _selectionStart = wordIndex;
-                            _selectionEnd = wordIndex;
+                            _selectedIndexes = [wordIndex];
                           });
                         }
                       },
@@ -126,7 +119,10 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
                           final localPosition = renderObject.globalToLocal(details.globalPosition);
                           final int wordIndex = _findWordIndexFromOffset(localPosition);
                           setState(() {
-                            _selectionEnd = wordIndex;
+                            if (!_selectedIndexes.contains(wordIndex)) {
+                              _selectedIndexes.add(wordIndex);
+                            }
+                            _selectedIndexes.sort();
                           });
                         }
                       },
@@ -135,16 +131,18 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
                         if (renderObject is RenderBox) {
                           final localPosition = renderObject.globalToLocal(details.globalPosition);
                           final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
-                          final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
-                          final List<int> selectedIndexes = List.generate(upper - lower + 1, (i) => lower + i);
-                          showContextMenu(context, details.globalPosition, selectedIndexes);
+                          setState(() {
+                            if (!_selectedIndexes.contains(wordIndex)) {
+                              _selectedIndexes.add(wordIndex);
+                            }
+                            _selectedIndexes.sort();
+                          });
+                          showContextMenu(details.globalPosition, wordIndexes: _selectedIndexes);
                         }
                       },
                       onLongPressCancel: () {
                         setState(() {
-                          _selectionStart = null;
-                          _selectionEnd = null;
+                          _selectedIndexes = [];
                         });
                       },
                       child: Text.rich(

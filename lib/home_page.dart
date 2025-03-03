@@ -1,87 +1,133 @@
-/*
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:transcriber_whisper/main_page.dart';
+import 'package:transcriber_whisper/models/project.dart';
+import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcribe_state.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  List<Map<String, dynamic>> _transcription = [];
-  bool _isLoading = false;
-
-  Future<void> _transcribeAudio(File audioFile) async {
-    setState(() {
-      _isLoading = true;
-      _transcription = [];
-    });
-
-    try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://127.0.0.1:5000/transcribe'));
-      request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
-
-      var response = await request.send();
-
-      if (response.statusCode == 200) {
-        var responseBody = await response.stream.bytesToString();
-        var data = jsonDecode(responseBody);
-        setState(() {
-          _transcription = List<Map<String, dynamic>>.from(data['transcription']);
-        });
-      } else {
-        print('Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _pickAudioFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
-
-    if (result != null) {
-      File file = File(result.files.single.path!);
-      _transcribeAudio(file);
-    } else {
-      // User canceled the picker
-    }
-  }
+class HomePage extends StatelessWidget {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Audio Transcriber')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ElevatedButton(onPressed: _pickAudioFile, child: Text('Pick Audio File')),
-            SizedBox(height: 20),
-            _isLoading
-                ? CircularProgressIndicator()
-                : Expanded(
-                  child: ListView.builder(
-                    itemCount: _transcription.length,
-                    itemBuilder: (context, index) {
-                      var wordData = _transcription[index];
-                      return ListTile(title: Text('${wordData['word']}'), subtitle: Text('Start: ${wordData['start'].toStringAsFixed(2)}, End: ${wordData['end'].toStringAsFixed(2)}, Probability: ${wordData['probability'].toStringAsFixed(4)}'));
-                    },
+      appBar: AppBar(
+        title: const Text('Lista de Proyectos'),
+      ),
+      body: BlocBuilder<TranscribeCubit, TranscribeState>(
+        builder: (context, state) {
+          if (state.status == TranscribeStatus.loading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state.status == TranscribeStatus.error) {
+            return Center(child: Text('Error: ${state.errorMessage}'));
+          } else {
+            final projects = state.projects ?? [];
+            return ListView.separated(
+              itemCount: projects.length,
+              separatorBuilder: (context, index) => const Divider(), // Añade un divisor entre los elementos
+              itemBuilder: (context, index) {
+                final project = projects[index];
+                return ListTile(
+                  title: Text(project.name),
+                  onTap: () {
+                    context.read<TranscribeCubit>().loadProject(project.id);
+                    context.read<TranscribeCubit>().selectProject(project);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MainPage()),
+                    );
+                  },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.upload_file), // Icono de cargar
+                        onPressed: () {
+                          context.read<TranscribeCubit>().pickAudioFile(project.id);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          _showDeleteConfirmationDialog(context, project.id);
+                        },
+                      ),
+                    ],
                   ),
-                ),
-          ],
-        ),
+                );
+              },
+            );
+          }
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showCreateProjectDialog(context);
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
+
+  void _showCreateProjectDialog(BuildContext context) {
+    String projectName = '';
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Crear Nuevo Proyecto'),
+          content: TextField(
+            onChanged: (value) {
+              projectName = value;
+            },
+            decoration: const InputDecoration(hintText: 'Nombre del Proyecto'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Crear'),
+              onPressed: () {
+                if (projectName.isNotEmpty) {
+                  context.read<TranscribeCubit>().createProject(projectName);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String projectId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar Proyecto'),
+          content: const Text('¿Estás seguro de que quieres eliminar este proyecto?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Eliminar'),
+              onPressed: () {
+                context.read<TranscribeCubit>().deleteProject(projectId);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
-*/

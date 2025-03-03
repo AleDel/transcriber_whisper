@@ -98,7 +98,8 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
                   return Listener(
                     onPointerDown: (event) {
                       if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
-                        showContextMenu(context, event.position, [index]);
+                        // Clic secundario (clic derecho)
+                        showContextMenu(event.position, wordIndexes: [index]);
                       }
                     },
                     child: GestureDetector(
@@ -107,7 +108,8 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
                         widget.onWordTap(index);
                       },
                       onLongPressStart: (details) {
-                        showContextMenu(context, details.globalPosition, [index]);
+                        // Long press
+                        showContextMenu(details.globalPosition,wordIndexes: [index]);
                       },
                       child: Container(
                         color: isCurrentWord ? Colors.yellow.withOpacity(0.5) : null,

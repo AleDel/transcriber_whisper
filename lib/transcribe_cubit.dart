@@ -1,33 +1,43 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:html' as html;
+import 'dart:io' as io;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socketIO;
+import 'package:transcriber_whisper/app_exceptions.dart';
+import 'package:transcriber_whisper/constants.dart';
+import 'package:transcriber_whisper/data_repository.dart';
 import 'package:transcriber_whisper/models/data_model.dart';
+import 'package:transcriber_whisper/models/project.dart';
+import 'package:transcriber_whisper/models/session.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
-import 'package:transcriber_whisper/segment_context_menu.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:uuid/uuid.dart';
 
 import 'mockData/textotest.dart';
 
-
 class TranscribeCubit extends Cubit<TranscribeState> {
-  TranscribeCubit() : super(const TranscribeState(status: TranscribeStatus.initial)) {
+  TranscribeCubit(this.dataRepository) : super(const TranscribeState(status: TranscribeStatus.initial)) {
     //initSocket();
     initAudioPlayer();
+    loadData();
   }
 
+  final DataRepository dataRepository;
   final ScrollController scrollController = ScrollController();
   final AudioPlayer audioPlayer = AudioPlayer();
-  late IO.Socket socket;
+  late socketIO.Socket socket;
   Transcription? transcription;
   bool _autoScrollEnabled = true;
   bool _userSelectedWord = false;
@@ -44,11 +54,10 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     "Corrección": Colors.purple,
     'Tag5': Colors.orange,
     'Tag6': Colors.pink,
-
   };
 
   void initSocket() {
-    socket = IO.io('http://192.168.1.10:5000', <String, dynamic>{
+    socket = socketIO.io(AppConstants.socketUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
     });
@@ -77,25 +86,24 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     });
     audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
       if (s == PlayerState.playing) {
-        emit(state.copyWith(status: TranscribeStatus.isPlayerplaying));
+        emit(state.copyWith(playerStatus: PlayerStatus.playing));
       } else if (s == PlayerState.paused) {
-        emit(state.copyWith(status: TranscribeStatus.isPlayerpause));
+        emit(state.copyWith(playerStatus: PlayerStatus.paused));
       } else if (s == PlayerState.stopped) {
-        emit(state.copyWith(status: TranscribeStatus.isPlayerstopped));
+        emit(state.copyWith(playerStatus: PlayerStatus.stopped));
       } else if (s == PlayerState.completed) {
-        emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
+        emit(state.copyWith(playerStatus: PlayerStatus.completed));
       }
     });
     audioPlayer.onPlayerComplete.listen((event) {
-      emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
+      emit(state.copyWith(playerStatus: PlayerStatus.completed));
     });
-
   }
 
   Future<void> alignAudio(PlatformFile audioFile, String text) async {
     emit(state.copyWith(status: TranscribeStatus.loading));
     try {
-      final url = Uri.parse('http://127.0.0.1:5000/align');
+      final url = Uri.parse(AppConstants.alignUrl);
       var request = http.MultipartRequest('POST', url);
 
       // Añadir el texto como un campo de formulario
@@ -106,14 +114,14 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       if (audioFile.bytes != null) {
         fileBytes = audioFile.bytes;
       } else if (audioFile.path != null) {
-        fileBytes = await File(audioFile.path!).readAsBytes();
+        fileBytes = await io.File(audioFile.path!).readAsBytes();
       } else {
-        throw Exception("No se pudo leer el archivo");
+        throw FileException("No se pudo leer el archivo");
       }
 
       // Verificar si fileBytes es nulo
       if (fileBytes == null) {
-        throw Exception("No se pudo leer el archivo");
+        throw FileException("No se pudo leer el archivo");
       }
 
       var multipartFile = http.MultipartFile.fromBytes(
@@ -136,21 +144,27 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       } else {
         print("Error en la respuesta: ${response.statusCode}");
         print("Cuerpo de la respuesta: ${response.body}");
-        throw Exception('Failed to align audio');
+        throw ServerException('Failed to align audio', details: 'Status code: ${response.statusCode}');
       }
+    } on FileException catch (e) {
+      print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message));
+    } on ServerException catch (e) {
+      print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message));
     } catch (e) {
       print('Error: $e');
-      emit(state.copyWith(status: TranscribeStatus.error));
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error desconocido"));
     }
   }
 
-
-  Future<void> transcribeAudio(PlatformFile audioFile) async {
+/*
+  Future<void> transcribeAudio(PlatformFile audioFile, String projectId) async {
+    print("transcribeAudio");
     emit(state.copyWith(status: TranscribeStatus.loading));
     try {
-      final url = Uri.parse('http://127.0.0.1:5001/transcribe');
-      //final url = Uri.parse('https://infanciadigital.duckdns.org/transcriber/transcribe');
-      final headers = {'Content-Type': 'application/octet-stream'};
+      final url = Uri.parse(AppConstants.transcribeUrl);
+      final headers = {'Content-Type': 'application/octet/stream'};
       Uint8List? fileBytes;
       String audioFilePath = "";
       if (audioFile.path != null) {
@@ -161,7 +175,7 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       } else if (audioFile.path != null) {
         fileBytes = await File(audioFile.path!).readAsBytes();
       } else {
-        throw Exception("No se pudo leer el archivo");
+        throw FileException("No se pudo leer el archivo");
       }
 
       final response = await http.post(url, headers: headers, body: fileBytes);
@@ -169,58 +183,279 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
 
-        transcription = Transcription.fromListMap(jsonResponse['transcription']);
-        //fullTextTranscription = _transcription!.fulltext!;
-        //melSpectrogramBase64 = jsonResponse['mel_spectrogram'];
-        //waveformImageBase64 = jsonResponse['waveform_image'];
+        transcription = Transcription.fromListMap(List<Map<String, dynamic>>.from(jsonResponse['transcription']));
 
         emit(
           state.copyWith(
             status: TranscribeStatus.loaded,
             transcription: transcription,
-            //melSpectrogramBase64: melSpectrogramBase64,
-            //samples: samples,
-            //waveformImageBase64: waveformImageBase64,
           ),
         );
-        //await audioPlayer.play(audioFilePath, isLocal: true);
 
+        var uuid = const Uuid();
+        String sessionId = uuid.v4();
         await audioPlayer.setSource(DeviceFileSource(audioFilePath));
-        //await loadSamples(audioFilePath);
+        await dataRepository.saveAudio(fileBytes?.toList(), audioFile.name, projectId, sessionId);
+        await dataRepository.saveTranscription(projectId, sessionId, transcription!);
+        await dataRepository.saveOriginalText(projectId, sessionId, "");
+        final session = Session(id: sessionId, wavFilename: audioFile.name, audioFilename: audioFile.name, status: SessionStatus.completed);
+        await dataRepository.saveSession(projectId, session);
+        final currentProject = state.currentProject?.copyWith(sessions: [...state.currentProject!.sessions, session]);
+        emit(state.copyWith(currentProject: currentProject));
+        // Update session status to completed
+        if (currentProject != null) {
+          final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == sessionId);
+          if (sessionIndex != -1) {
+            final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+              transcription: transcription,
+              status: SessionStatus.completed,
+            );
+            final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+            final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+            emit(state.copyWith(currentProject: updatedProject));
+            await dataRepository.saveProject(updatedProject);
+          }
+        }
       } else {
         print('Error: ${response.statusCode}');
-        emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error en la respuesta: ${response.statusCode}"));
+        throw ServerException('Failed to transcribe audio', details: 'Status code: ${response.statusCode}');
       }
+    } on FileException catch (e) {
+      print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message));
+    } on ServerException catch (e) {
+      print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message));
     } catch (e) {
-      String errorMessage = "Error desconocido";
-      if (e is SocketException) {
-        errorMessage = "Error de conexión a internet";
-      } else if (e is HttpException) {
-        errorMessage = "Error de comunicación con el servidor";
-      } else if (e is Exception) {
-        errorMessage = e.toString();
-      }print('Error: $e');
-      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: errorMessage));
+      print('Error: $e');
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error desconocido"));
     } finally {
       emit(state.copyWith(status: TranscribeStatus.loaded));
     }
   }
+*/
+  /*
+  Future<void> processAndTranscribeFiles(String projectId, List<PlatformFile> files) async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      await _sendFilesToAudioProcessor(files, projectId);
+      emit(state.copyWith(status: TranscribeStatus.loaded));
+    } on ServerException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message, errorDetails: e.details));
+    } on ServerNotAvailableException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.noserver, errorMessage: e.message, errorDetails: e.details));
+    } on UnknownException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message, errorDetails: e.details));
+    }
+  }
 
-  Future<void> pickAudioFile() async {
+  */
+
+  Future<void> _sendFilesToAudioProcessor(Session session) async {
+    print("_sendFilesToAudioProcessor");
+    print("Session file name: ${session.platformFile?.name}");
+    print("Session file bytes: ${session.platformFile?.bytes}");
+    print("Session file path: ${session.platformFile?.path}");
+    try {
+      final url = Uri.parse(AppConstants.audioProcessorUrl);
+      final currentProject = state.currentProject;
+
+      // Check if the session has a PlatformFile
+      if (session.platformFile == null) {
+        // Handle the case where there's no file associated with the session
+        if (currentProject != null) {
+          final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == session.id);
+          if (sessionIndex != -1) {
+            final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+              status: SessionStatus.error,
+            );
+            final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+            final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+            emit(state.copyWith(currentProject: updatedProject));
+            await dataRepository.saveProject(updatedProject);
+          }
+        }
+        throw Exception('No file associated with this session.');
+      }
+
+      // Update session status to processingAudio
+      if (currentProject != null) {
+        final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == session.id);
+        if (sessionIndex != -1) {
+          final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+            status: SessionStatus.processingAudio,
+          );
+          final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+          final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+          emit(state.copyWith(currentProject: updatedProject));
+          await dataRepository.saveProject(updatedProject);
+        }
+      }
+
+      print("ok1");
+      // Add the file to the request
+      if (session.platformFile!.path != null) {
+        print("Adding file with path");
+        // Fetch the blob
+        final blobResponse = await http.get(Uri.parse(session.platformFile!.path!));
+        if (blobResponse.statusCode == 200) {
+          // Convert to Uint8List
+          final bytes = blobResponse.bodyBytes;
+          final request = http.MultipartRequest('POST', url)
+            ..files.add(http.MultipartFile.fromBytes(
+              'audio_files',
+              bytes,
+              filename: session.platformFile!.name,
+            ));
+          print("Request files: ${request.files.length}");
+          print("ok4");
+          final response = await request.send();
+          final responseBody = await response.stream.bytesToString();
+
+          if (response.statusCode == 200) {
+            final responseData = jsonDecode(responseBody);
+            final processedFiles = responseData['processed_files'] as List<dynamic>;
+            for (final file in processedFiles) {
+              final filename = path.basename(file);
+              final fileUrl = Uri.parse('${AppConstants.audioProcessorUrl.replaceAll("/process_audio", "")}/get_processed_file/$filename');
+              final fileResponse = await http.get(fileUrl);
+              print('fileResponse.statusCode: ${fileResponse.statusCode}');
+              if (fileResponse.statusCode == 200) {
+                final fileBytes = fileResponse.bodyBytes;
+                print('Tamaño de fileBytes: ${fileBytes.length} bytes');
+                // Save the file
+                if (kIsWeb) {
+                  // Flutter Web: Download as a Blob
+                  final blob = html.Blob([fileBytes]);
+                  final url = html.Url.createObjectUrlFromBlob(blob);
+                  final anchor = html.document.createElement('a') as html.AnchorElement
+                    ..href = url
+                    ..style.display = 'none'
+                    ..download = filename;
+                  html.document.body!.children.add(anchor);
+                  anchor.click();
+                  html.document.body!.children.remove(anchor);
+                  html.Url.revokeObjectUrl(url);
+                  print('Archivo guardado en: ${filename}');
+                } else {
+                  // Mobile/Desktop: Save to file system
+                  final directory = await getApplicationDocumentsDirectory();
+                  final file = io.File('${directory.path}/$filename');
+                  await file.writeAsBytes(fileBytes);
+                  print('Archivo guardado en: ${file.path}');
+                }
+                print('Archivo descargado: $filename');
+              } else {
+                print('Error al descargar el archivo: $filename');
+              }
+            }
+            // Update session status to completed
+            if (currentProject != null) {
+              final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == session.id);
+              if (sessionIndex != -1) {
+                final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+                  status: SessionStatus.completed,
+                );
+                final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+                final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+                emit(state.copyWith(currentProject: updatedProject));
+                await dataRepository.saveProject(updatedProject);
+              }
+            }
+          } else {
+            // Update session status to error
+            if (currentProject != null) {
+              final sessionIndex = currentProject.sessions.indexWhere((s) => s.id== session.id);
+              if (sessionIndex != -1) {
+                final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+                  status: SessionStatus.error,
+                );
+                final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+                final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+                emit(state.copyWith(currentProject: updatedProject));
+                await dataRepository.saveProject(updatedProject);
+              }
+            }
+            throw ServerException('Error al procesar el audio', details: 'Status code: ${response.statusCode} - $responseBody');
+          }
+        } else {
+          // Handle the case where the blob fetch fails
+          if (currentProject != null) {
+            final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == session.id);
+            if (sessionIndex != -1) {
+              final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+                status: SessionStatus.error,
+              );
+              final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+              final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+              emit(state.copyWith(currentProject: updatedProject));
+              await dataRepository.saveProject(updatedProject);
+            }
+          }
+          throw Exception('Failed to fetch blob: ${blobResponse.statusCode}');
+        }
+      } else {
+        // Handle the case where there's no path
+        if (currentProject != null) {
+          final sessionIndex = currentProject.sessions.indexWhere((s) => s.id == session.id);
+          if (sessionIndex != -1) {
+            final updatedSession = currentProject.sessions[sessionIndex].copyWith(
+              status: SessionStatus.error,
+            );
+            final updatedSessions = List<Session>.from(currentProject.sessions)..[sessionIndex] = updatedSession;
+            final updatedProject = currentProject.copyWith(sessions: updatedSessions);
+            emit(state.copyWith(currentProject: updatedProject));
+            await dataRepository.saveProject(updatedProject);
+          }
+        }
+        throw Exception('No path found for the file.');
+      }
+    } on io.SocketException catch (e) {
+      print('No se pudo conectar con el servidor');
+      throw ServerNotAvailableException('No se pudo conectar con el servidor', details: e.toString());
+    } on TimeoutException catch (e) {
+      print('Tiempo de espera agotado al conectar con el servidor');
+      throw ServerNotAvailableException('Tiempo de espera agotado al conectar con el servidor', details: e.toString());
+    } on http.ClientException catch (e) {
+      print('Error de cliente al conectar con el servidor: ${e.toString()}');
+      emit(state.copyWith(status: TranscribeStatus.noserver, errorMessage: 'Error de cliente al conectar con el servidor'));
+      throw ServerNotAvailableException('Error de cliente al conectar con el servidor', details: e.toString());
+    } catch (e) {
+      print('Error desconocido al conectar con el servidor: ${e.toString()}');
+      throw UnknownException('Error desconocido al conectar con el servidor', details: e.toString());
+    }
+  }
+
+  Future<void> processSession(Session session) async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      await _sendFilesToAudioProcessor(session);
+      emit(state.copyWith(status: TranscribeStatus.loaded));
+    } on ServerException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message, errorDetails: e.details));
+    } on ServerNotAvailableException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.noserver, errorMessage: e.message, errorDetails: e.details));
+    } on UnknownException catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: e.message, errorDetails: e.details));
+    }
+  }
+
+  Future<void> pickAudioFile(String projectId) async {
     print("hola");
     //FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
-
+    //FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowMultiple: true, allowedExtensions: ["aac"]);
+/*
     if (result != null) {
       //File file = File(result.files.single.path!);
       PlatformFile file = result.files.single;
       ///////////transcribeAudio(file);
-      transcribeAudio(file);
+      transcribeAudio(file, projectId);
       //alignAudio(file, "Nadie te puede salvar");
     } else {
       // User canceled the picker, do nothing
       print("User canceled the picker");
-    }
+    }*/
   }
 
   Future<void> useMockTranscription() async {
@@ -228,6 +463,7 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     //await audioPlayer.setSource(DeviceFileSource(audioFilePath));
     await audioPlayer.setSource(AssetSource('9183-2-2660_16000hz.wav'));
     emit(state.copyWith(status: TranscribeStatus.loaded, transcription: transcription)); /**/
+    //await dataRepository.saveTranscription(transcription!);
   }
 
   void toggleEditMode() {
@@ -342,106 +578,17 @@ class TranscribeCubit extends Cubit<TranscribeState> {
   }
 
   void togglePlayAndStopWordOnSelect() {
-    emit(
-      state.copyWith(
-        extradata: state.extradata?.copyWith(
-          playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect,
-        ),
-      ),
-    );
+    emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
   }
 
-  void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
-    List<String> selectedTags = [];
-    if (selectedIndexes.isNotEmpty) {
-      selectedTags = state.transcription!.segments[selectedIndexes.first].tags;
-    } else {
-      final index = _getSegmentIndexFromOffset(position);
-      if (index != -1) {
-        selectedTags = state.transcription!.segments[index].tags;
-      }
-    }
-    showDialog(
-        context: context,
-        builder: (context) {
-      return AlertDialog(
-          content: SegmentContextMenu(
-          availableTags: availableTags.keys.toList(),
-    selectedTags: selectedTags,
-    editMode: state.editMode,
-    onTagAdded: (tag) {
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    addTagToSegment(index, tag);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    addTagToSegment(index, tag);
-    }
-    }
-    },
-    onTagRemoved: (tag) {
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    removeTagFromSegment(index, tag);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    removeTagFromSegment(index, tag);
-    }
-    }
-    },
-    onEdit: () {
-    Navigator.of(context).pop();
-    if (selectedIndexes.isNotEmpty) {
-    _editSegments(context, selectedIndexes);
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    _editSegment(context, index);
-    }
-    }
-    },
-    onDelete: () {
-    Navigator.of(context).pop();
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    deleteSegment(index);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-      deleteSegment(index);
-    }
-    }
-    },
-            selectedIndexes: selectedIndexes,
-          ),
-      );
-        },
-    );
-  }
-
-  int _getSegmentIndexFromOffset(Offset position) {
-    if (state.transcription == null) return -1;
-    final RenderBox box = scrollController.position.context.storageContext.findRenderObject() as RenderBox;
-    final result = BoxHitTestResult();
-    final local = box.globalToLocal(position);
-    if (box.hitTest(result, position: local)) {
-      for (final hit in result.path) {
-        final target = hit.target;
-        if (target is RenderParagraph) {
-          final offset = target.getPositionForOffset(local);
-          final wordIndex = offset.offset;
-          return wordIndex;
-        }
-      }
-    }
-    return -1;
-  }
-
+  /// Realiza una búsqueda binaria en la lista de segmentos para encontrar el segmento que contiene el tiempo objetivo.
+  ///
+  /// Args:
+  ///   segments (List<Segment>): La lista de segmentos en la que se realizará la búsqueda.
+  ///   target (int): El tiempo objetivo en milisegundos.
+  ///
+  /// Returns:
+  ///   int: El índice del segmento que contiene el tiempo objetivo, o -1 si no se encuentra ningún segmento.
   int _binarySearch(List<Segment> segments, int target) {
     int left = 0;
     int right = segments.length - 1;
@@ -461,72 +608,135 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     return -1;
   }
 
-  void _editSegment(BuildContext context, int index) {
-    final segment = state.transcription!.segments[index];
-    String newText = segment.word;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Segmento'),
-          content: TextField(
-            controller: TextEditingController(text: newText),
-            onChanged: (value) {
-              newText = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                final newSegment = segment.copyWith(word: newText);
-                editSegment(newSegment);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
+  void updateTranscription(Transcription newTranscription) {
+    emit(state.copyWith(transcription: newTranscription));
   }
 
-  void _editSegments(BuildContext context, List<int> indexes) {
-    if (indexes.isEmpty) return;
-    String newText = state.transcription!.segments[indexes.first].word;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Segmentos'),
-          content: TextField(
-            controller: TextEditingController(text: newText),
-            onChanged: (value) {
-              newText = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                editSegments(indexes, newText);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> loadData() async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      final projects = await dataRepository.loadProjects();
+      print(projects);
+      emit(state.copyWith(status: TranscribeStatus.loaded, projects: projects));
+    } catch (e) {
+      print("Error al cargar los proyectos: $e");
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error al cargar los datos"));
+    }
+  }
+
+  Future<void> loadProject(String projectId) async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      final project = await dataRepository.loadProject(projectId);
+      if (project != null) {
+        if (project.sessions.isNotEmpty) {
+          //_originalText = project.sessions.first.originalText ?? "";
+        }
+        emit(state.copyWith(status: TranscribeStatus.loaded, currentProject: project));
+      }
+    } catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error al cargar el proyecto"));
+    }
+  }
+
+  Future<void> selectProject(Project project) async {
+    emit(state.copyWith(currentProject: project));
+  }
+
+  Future<void> deleteData() async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      final projects = await dataRepository.loadProjects();
+      for (var project in projects) {
+        await dataRepository.deleteProject(project.id);
+      }
+      emit(state.copyWith(status: TranscribeStatus.loaded, transcription: Transcription(segments: [])));
+    } catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error al eliminar los datos"));
+    }
+  }
+
+  Future<void> saveOriginalText(String projectId, String sessionId, String text) async {
+    try {
+      await dataRepository.saveOriginalText(projectId, sessionId, text);
+    } catch (e) {
+      print('Error al guardar el texto original: $e');
+    }
+  }
+
+  Future<void> deleteProject(String projectId) async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      await dataRepository.deleteProject(projectId);
+      await loadData();
+      emit(state.copyWith(status: TranscribeStatus.loaded));
+    } catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error al eliminar el proyecto"));
+    }
+  }
+
+  Future<void> createProject(String projectName) async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    try {
+      var uuid = const Uuid();
+      String projectId = uuid.v4();
+      final project = Project(id: projectId, name: projectName);
+      await dataRepository.saveProject(project);
+      await loadData();
+      emit(state.copyWith(status: TranscribeStatus.loaded));
+    } catch (e) {
+      emit(state.copyWith(status: TranscribeStatus.error, errorMessage: "Error al crear el proyecto"));
+    }
+  }
+
+  Future<void> addFilesToProject(String projectId, List<PlatformFile> files) async {
+    try {
+      final currentProject = state.currentProject;
+      if (currentProject != null) {
+        List<Session> newSessions = [];
+        for (var file in files) {
+          // Check if a session with the same audioFilename already exists
+          final sessionExists = currentProject.sessions.any((session) => session.audioFilename == file.name);
+          if (!sessionExists) {
+            print("File name: ${file.name}");
+            print("File bytes: ${file.bytes}");
+            print("File path: ${file.path}");
+            final newSession = Session(id: const Uuid().v4(), audioFilename: file.name, platformFile: file);
+            await dataRepository.saveSession(projectId, newSession);
+            newSessions.add(newSession);
+          }
+        }
+        if (newSessions.isNotEmpty) {
+          final updatedSessions = List<Session>.from(currentProject.sessions)..addAll(newSessions);
+          final updatedProject = currentProject.copyWith(sessions: List.from(updatedSessions));
+          emit(state.copyWith(currentProject: updatedProject));
+        }
+      }
+    } catch (e) {
+      print('Error al añadir archivos al proyecto: $e');
+    }
+  }
+
+  Future<void> deleteAllSessions(String projectId) async {
+    try {
+      await dataRepository.deleteSessions(projectId);
+      final currentProject = await dataRepository.loadProject(projectId);
+      emit(state.copyWith(currentProject: currentProject));
+    } catch (e) {
+      print('Error al borrar todas las sesiones: $e');
+    }
+  }
+
+  void addFiles(List<PlatformFile> files) {
+    emit(state.copyWith(files: files));
+  }
+
+  void clearFiles() {
+    emit(state.copyWith(files: []));
+  }
+
+  Future<void> removeFile(PlatformFile file) async {
+    final files = state.files.where((f) => f.name != file.name).toList();
+    emit(state.copyWith(files: files));
   }
 }
