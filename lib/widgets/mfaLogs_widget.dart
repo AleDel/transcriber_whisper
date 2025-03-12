@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-
-import '../transcribe_state.dart'; // Asegúrate de importar tu TranscribeCubit
+import 'package:transcriber_whisper/cubits/transcription_cubit.dart';
 
 class MfaLogsWidget extends StatefulWidget {
   const MfaLogsWidget({Key? key}) : super(key: key);
@@ -42,7 +40,7 @@ class _MfaLogsWidgetState extends State<MfaLogsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<TranscribeCubit, TranscribeState>(
+    return BlocConsumer<TranscriptionCubit, TranscriptionState>(
       listener: (context, state) {
         // Escuchar los cambios en la lista logs_mfa
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,3 +78,4 @@ class _MfaLogsWidgetState extends State<MfaLogsWidget> {
     );
   }
 }
+*/

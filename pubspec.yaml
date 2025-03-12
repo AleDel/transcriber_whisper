@@ -7,9 +7,10 @@ environment:
   sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
-  audioplayers: ^6.2.0
+  audioplayers: ^6.3.0
   desktop_drop: ^0.5.0
   diff_match_patch: ^0.4.1
+  dotted_border: ^2.1.0
   equatable: ^2.0.7
   file_picker: ^9.0.0
   flutter:
@@ -19,10 +20,11 @@ dependencies:
   get_it: ^8.0.3
   http: ^1.3.0
   http_parser: ^4.1.2
+  idb_shim: ^2.6.4+1
   path: ^1.9.1
   scrollable_positioned_list: ^0.3.8
   shared_preferences: ^2.5.2
-  socket_io_client: ^3.0.2
+  web_socket_channel: ^3.0.2
 
 dev_dependencies:
   flutter_test:
@@ -33,3 +35,4 @@ flutter:
   uses-material-design: true
   assets:
   - assets/
+  - assets/audio/

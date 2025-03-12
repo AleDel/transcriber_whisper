@@ -1,17 +1,26 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-
-import '../transcribe_state.dart';
+import 'package:transcriber_whisper/cubits/session_cubit.dart';
+import 'package:transcriber_whisper/models/session_data.dart';
 
 class AudioPlayerWidget extends StatelessWidget {
   const AudioPlayerWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<SessionCubit, SessionState>(
+      // Agrega esta línea para escuchar los cambios en playerStatus
+      buildWhen: (previous, current) =>
+      previous.sessionData?.playerStatus != current.sessionData?.playerStatus ||
+          previous.sessionData?.audioPosition != current.sessionData?.audioPosition ||
+          previous.sessionData?.audioDuration != current.sessionData?.audioDuration,
       builder: (context, state) {
-        final cubit = context.read<TranscribeCubit>();
+        final cubit = context.read<SessionCubit>();
+        final sessionData = state.sessionData;
+        if (sessionData == null) {
+          return const Center(child: Text("No hay datos de sesión"));
+        }
         return Column(
           children: [
             Row(
@@ -19,12 +28,12 @@ class AudioPlayerWidget extends StatelessWidget {
               children: [
                 IconButton(
                   icon: Icon(
-                    state.playerStatus == PlayerStatus.playing
+                    sessionData.playerStatus == PlayerStatus.playing
                         ? Icons.pause
                         : Icons.play_arrow,
                   ),
                   onPressed: () {
-                    if (state.playerStatus == PlayerStatus.playing) {
+                    if (sessionData.playerStatus == PlayerStatus.playing) {
                       cubit.audioPlayer.pause();
                     } else {
                       cubit.audioPlayer.resume();
@@ -38,7 +47,7 @@ class AudioPlayerWidget extends StatelessWidget {
                   },
                 ),
                 Text(
-                  '${state.extradata?.audioPosition.toString().split('.').first ?? "0:00"} / ${state.extradata?.audioDuration.toString().split('.').first ?? "0:00"}',
+                  '${sessionData.audioPosition.toString().split('.').first} / ${sessionData.audioDuration.toString().split('.').first}',
                 ),
               ],
             ),

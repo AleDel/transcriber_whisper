@@ -1,5 +1,8 @@
-// models/transcription_model.dart
 import 'package:equatable/equatable.dart';
+
+import 'alignment_mfa_data.dart';
+
+enum SegmentType { word, phoneme }
 
 class Transcription extends Equatable {
   final List<Segment> segments;
@@ -8,7 +11,7 @@ class Transcription extends Equatable {
 
   factory Transcription.fromListMap(List<dynamic> listMap) {
     return Transcription(
-      segments: listMap.map((e) => Segment.fromMap(e)).toList(),
+      segments: listMap.map((e) => Segment.fromMap(e as Map<String, dynamic>)).toList(),
     );
   }
 
@@ -18,6 +21,10 @@ class Transcription extends Equatable {
     return Transcription(
       segments: segments ?? this.segments,
     );
+  }
+
+  String get textcolumna {
+    return segments.map((segment) => segment.word.toLowerCase()).join('\n');
   }
 
   String get fulltext {
@@ -52,9 +59,10 @@ class Segment extends Equatable {
     return Segment(
       start: map['start']?.toDouble() ?? 0.0,
       end: map['end']?.toDouble() ?? 0.0,
-      word: map['word'] ?? '',
+      word: map['word'] as String? ?? '',
       probability: map['probability']?.toDouble() ?? 0.0,
-      tags: map['tags'] != null ? List<String>.from(map['tags']) : [],
+      tags: map['tags'] != null ? List<String>.from(map['tags'] as List) : [],
+      //phonemes: map['phonemes'] != null ? List<Entry>.from(map['phonemes'] as List) : [],
     );
   }
 
@@ -64,6 +72,7 @@ class Segment extends Equatable {
     String? word,
     double? probability,
     List<String>? tags,
+    //List<Entry>? phonemes,
   }) {
     return Segment(
       start: start ?? this.start,
@@ -71,6 +80,7 @@ class Segment extends Equatable {
       word: word ?? this.word,
       probability: probability ?? this.probability,
       tags: tags ?? this.tags,
+      //phonemes: phonemes ?? this.phonemes,
     );
   }
 

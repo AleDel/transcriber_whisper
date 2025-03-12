@@ -1,99 +1,70 @@
-import 'dart:convert';
-import 'dart:html' as html;
-import 'dart:typed_data';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber_whisper/indexed_db_service.dart';
 import 'package:transcriber_whisper/models/project.dart';
-import 'package:transcriber_whisper/models/session.dart';
-
+import 'package:transcriber_whisper/models/session_data.dart';
 import 'models/transcription_model.dart';
+import 'package:uuid/uuid.dart';
 
 class DataRepository {
-  static const String _projectsKey = 'projects';
+  final IndexedDBService _indexedDBService;
+  final Uuid _uuid = const Uuid();
 
-  // Métodos para los proyectos
+  DataRepository(this._indexedDBService);
+
   Future<List<Project>> loadProjects() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_projectsKey);
-    if (jsonString == null) return [];
-    final List<dynamic> jsonList = jsonDecode(jsonString);
-    return jsonList.map((json) => ProjectExtension.fromMap(json)).toList(); // Usa la extensión
+    try {
+      return await _indexedDBService.getProjects();
+    } catch (e) {
+      // Aquí puedes manejar el error de una manera más específica,
+      // por ejemplo, loguearlo o lanzar una excepción personalizada.
+      print("Error en DataRepository.loadProjects: $e");
+      rethrow; // Re-lanza la excepción para que el ProjectCubit la maneje.
+    }
   }
 
-  Future<void> saveProjects(List<Project> projects) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = projects.map((project) => project.toMap()).toList(); // Usa la extensión
-    prefs.setString(_projectsKey, jsonEncode(jsonList));
+  Future<List<Project>> getProjects() async {
+    return await _indexedDBService.getProjects();
   }
 
   Future<void> saveProject(Project project) async {
-    final projects = await loadProjects();
-    final existingIndex = projects.indexWhere((p) => p.id == project.id);
-    if (existingIndex != -1) {
-      projects[existingIndex] = project;
-    } else {
-      projects.add(project);
-    }
-    await saveProjects(projects);
+    await _indexedDBService.saveProject(project);
   }
 
-  Future<Project?> loadProject(String projectId) async {
-    final projects = await loadProjects();
-    try {
-      return projects.firstWhere((p) => p.id == projectId);
-    } catch (e) {
-      return null;
-    }
+  Future<Project?> getProject(String projectId) async {
+    return await _indexedDBService.getProject(projectId);
   }
 
   Future<void> deleteProject(String projectId) async {
-    final projects = await loadProjects();
-    projects.removeWhere((p) => p.id == projectId);
-    await saveProjects(projects);
+    await _indexedDBService.deleteProject(projectId);
   }
 
-  // Métodos para las sesiones
-  Future<void> saveSession(String projectId, Session session) async {
-    final project = await loadProject(projectId);
-    if (project != null) {
-      final newSessions = List<Session>.from(project.sessions)..add(session);
-      final newProject = project.copyWith(sessions: newSessions);
-      await saveProject(newProject);
-    }
+  Future<void> saveSession(SessionData session) async {
+    await _indexedDBService.saveSession(session);
   }
 
-  Future<List<Session>> loadSessions(String projectId) async {
-    final project = await loadProject(projectId);
-    if (project != null) {
-      return project.sessions;
-    } else {
-      return [];
-    }
+  Future<SessionData> getSessionById(String sessionId) async {
+    return await _indexedDBService.getSessionById(sessionId);
   }
 
-  Future<void> deleteSession(String projectId, String sessionId) async {
-    final project = await loadProject(projectId);
-    if (project != null) {
-      final newSessions = List<Session>.from(project.sessions)..removeWhere((s) => s.id == sessionId);
-      final newProject = project.copyWith(sessions: newSessions);
-      await saveProject(newProject);
-    }
+  Future<void> deleteSession(String sessionId) async {
+    await _indexedDBService.deleteSession(sessionId);
   }
 
   Future<void> deleteSessions(String projectId) async {
-    final project = await loadProject(projectId);
+    final project = await getProject(projectId);
     if (project != null) {
-      final newProject = project.copyWith(sessions: []);
-      await saveProject(newProject);
+      for (var session in project.sessionsData) {
+        await deleteSession(session.id);
+      }
     }
   }
 
   Future<void> saveOriginalText(String projectId, String sessionId, String text) async {
-    final project = await loadProject(projectId);
+    final project = await getProject(projectId);
     if (project != null) {
-      final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
       if (sessionIndex != -1) {
-        final newSession = project.sessions[sessionIndex].copyWith(originalText: text);
-        final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
+        final newSession = project.sessionsData[sessionIndex].copyWith(originalText: text);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
         final newProject = project.copyWith(sessions: newSessions);
         await saveProject(newProject);
       }
@@ -101,144 +72,132 @@ class DataRepository {
   }
 
   Future<void> saveTranscription(String projectId, String sessionId, Transcription transcription) async {
-    final project = await loadProject(projectId);
+    final project = await getProject(projectId);
     if (project != null) {
-      final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
+      final sessionIndex =project.sessionsData.indexWhere((s) => s.id == sessionId);
       if (sessionIndex != -1) {
-        final newSession = project.sessions[sessionIndex].copyWith(transcription: transcription);
-        final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
+        final newSession = project.sessionsData[sessionIndex].copyWith(transcription: transcription);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
         final newProject = project.copyWith(sessions: newSessions);
         await saveProject(newProject);
       }
     }
   }
 
-  Future<void> _saveFile(List<int>? fileBytes, String filename) async {
-    if (fileBytes == null) {
-      print('No se pudo guardar el archivo porque fileBytes es null');
-      return;
+  Future<void> saveWaveformData(String projectId, String sessionId, String waveformData) async {
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(waveformData: waveformData);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
+      }
     }
-    final blob = html.Blob([Uint8List.fromList(fileBytes)]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.document.createElement('a') as html.AnchorElement
-      ..href = url
-      ..style.display = 'none'
-      ..download = filename;
-    html.document.body?.children.add(anchor);
-    anchor.click();
-    html.document.body?.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
+  }
+
+  Future<void> saveWaveformImage(String projectId, String sessionId, String waveformImage) async {
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(waveformImage: waveformImage);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
+      }
+    }
+  }
+
+  Future<void> saveMelSpectrogram(String projectId, String sessionId, String melSpectrogram) async {
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(melSpectrogram: melSpectrogram);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
+      }
+    }
   }
 
   Future<void> saveAudio(List<int>? audioBytes, String filename, String projectId, String sessionId) async {
     try {
-      final project = await loadProject(projectId);
+      final project = await getProject(projectId);
       if (project != null) {
-        final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
+        final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
         if (sessionIndex != -1) {
-          final newSession = project.sessions[sessionIndex].copyWith(audioFilename: filename);
-          final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
+          final newSession = project.sessionsData[sessionIndex].copyWith(audioFilename: filename);
+          final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
           final newProject = project.copyWith(sessions: newSessions);
           await saveProject(newProject);
         }
       }
-      await _saveFile(audioBytes, filename);
-    } catch (e) {
-      print('Error saving audio: $e');
-    }
-  }
-  Future<void> saveWav(List<int>? audioBytes, String filename, String projectId, String sessionId) async {
-    try {
-      final project = await loadProject(projectId);
-      if (project != null) {
-        final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
-        if (sessionIndex != -1) {
-          final newSession = project.sessions[sessionIndex].copyWith(audioFilename: filename);
-          final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
-          final newProject = project.copyWith(sessions: newSessions);
-          await saveProject(newProject);
-        }
-      }
-      await _saveFile(audioBytes, filename);
     } catch (e) {
       print('Error saving audio: $e');
     }
   }
 
   Future<void> deleteAudio(String projectId, String sessionId) async {
-    try {
-      final project = await loadProject(projectId);
-      if (project != null) {
-        final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
-        if (sessionIndex != -1) {
-          final newSession = project.sessions[sessionIndex].copyWith(audioFilename:null);
-          final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
-          final newProject = project.copyWith(sessions: newSessions);
-          await saveProject(newProject);
-        }
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(audioFilename: null);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
       }
-    } catch (e) {
-      print('Error deleting audio: $e');
     }
   }
 
   Future<void> deleteTranscription(String projectId, String sessionId) async {
-    try {
-      final project = await loadProject(projectId);
-      if (project != null) {
-        final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
-        if (sessionIndex != -1) {
-          final newSession = project.sessions[sessionIndex].copyWith(transcription: null);
-          final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
-          final newProject = project.copyWith(sessions: newSessions);
-          await saveProject(newProject);
-        }
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(transcription: null);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
       }
-    } catch (e) {
-      print('Error deleting transcription: $e');}
+    }
   }
 
   Future<void> deleteOriginalText(String projectId, String sessionId) async {
-    try {
-      final project = await loadProject(projectId);
-      if (project != null) {
-        final sessionIndex = project.sessions.indexWhere((s) => s.id == sessionId);
-        if (sessionIndex != -1) {
-          final newSession = project.sessions[sessionIndex].copyWith(originalText: null);
-          final newSessions = List<Session>.from(project.sessions)..[sessionIndex] = newSession;
-          final newProject = project.copyWith(sessions: newSessions);
-          await saveProject(newProject);
-        }
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionIndex = project.sessionsData.indexWhere((s) => s.id == sessionId);
+      if (sessionIndex != -1) {
+        final newSession = project.sessionsData[sessionIndex].copyWith(originalText: null);
+        final newSessions = List<SessionData>.from(project.sessionsData)..[sessionIndex] = newSession;
+        final newProject = project.copyWith(sessions: newSessions);
+        await saveProject(newProject);
       }
-    } catch (e) {
-      print('Error deleting original text: $e');
     }
   }
 
-  Future<void> loadAudio(String projectId, String sessionId) async {
-    try {
-      print('No se puede cargar el audio porque se descarga');
-    } catch (e) {
-      print('Error loading audio: $e');
+  Future<Project?> getFirstProject() async {
+    final projects = await getProjects();
+    if (projects.isNotEmpty) {
+      return projects.first;
     }
-  }
-}
-
-// Extensiones para convertir a Map y desde Map
-extension ProjectExtension on Project {
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'sessions': sessions.map((s) => s.toMap()).toList(),
-    };
+    return null;
   }
 
-  static Project fromMap(Map<String, dynamic> map) {
-    return Project(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      sessions: (map['sessions'] as List<dynamic>?)?.map((s) => Session.fromMap(s)).toList() ?? [],
-    );
+  Future<SessionData> createSession(String projectId, String name) async {
+    final project = await getProject(projectId);
+    if (project != null) {
+      final sessionId = _uuid.v4();
+      final session = SessionData(id: sessionId, projectId: projectId, audioFilename: "audio.wav", name: name);
+      final newSessions = List<SessionData>.from(project.sessionsData)..add(session);
+      final newProject = project.copyWith(sessions: newSessions);
+      await saveProject(newProject);
+      return session;
+    } else {
+      throw Exception("Project not found");
+    }
   }
 }

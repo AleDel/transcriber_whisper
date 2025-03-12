@@ -1,4 +1,3 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +6,9 @@ import 'audioFileList_widget.dart';
 
 class AudioDropZone extends StatefulWidget {
   final Function(List<AudioFileInfo>) onFilesChanged;
+  final VoidCallback onFilesReady;
 
-  const AudioDropZone({Key? key, required this.onFilesChanged}) : super(key: key);
+  const AudioDropZone({Key? key, required this.onFilesChanged, required this.onFilesReady}) : super(key: key);
 
   @override
   AudioDropZoneState createState() => AudioDropZoneState();
@@ -18,24 +18,10 @@ class AudioDropZoneState extends State<AudioDropZone> {
   final List<AudioFileInfo> _files = [];
   bool _dragging = false;
 
-  Future<void> _getDuration(PlatformFile file) async {
-    final audioPlayer = AudioPlayer();
-    if (file.path != null) {
-      await audioPlayer.setSource(DeviceFileSource(file.path!));
-      audioPlayer.onDurationChanged.listen((Duration d) {
-        final index = _files.indexWhere((element) => element.file.name == file.name);
-        if (index != -1) {
-          _files[index] = _files[index].copyWith(duration: d);
-          setState(() {});
-        }
-      });
-    }
-  }
-
   Future<void> _pickAudioFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowMultiple: true,allowedExtensions: ["aac","mp3","wav","ogg"]
+        allowMultiple: true,allowedExtensions: ["aac","mp3","wav","ogg", "m4a"]
     );
 
     if (result != null) {
@@ -48,9 +34,6 @@ class AudioDropZoneState extends State<AudioDropZone> {
       setState(() {
         _files.addAll(newFiles);
       });
-      for (var fileInfo in newFiles) {
-        _getDuration(fileInfo.file);
-      }
       widget.onFilesChanged(_files);
     }
   }
@@ -88,9 +71,6 @@ class AudioDropZoneState extends State<AudioDropZone> {
         setState(() {
           _files.addAll(newFiles);
         });
-        for (var fileInfo in newFiles) {
-          _getDuration(fileInfo.file);
-        }
         widget.onFilesChanged(_files);
       },
       onDragEntered: (detail) {
@@ -131,17 +111,17 @@ class AudioDropZoneState extends State<AudioDropZone> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SizedBox(
-                      height: constraints.maxHeight,
-                      child: AudioFileList(
-                        files: _files,
-                        onRemoveFile: _removeFile,
-                        onClearFileList: _clearFileList,
-                      ),
-                    );
-                  },
+                child: AudioFileList(
+                  files: _files,
+                  onRemoveFile: _removeFile,
+                  onClearFileList: _clearFileList,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: widget.onFilesReady,
+                  child: const Text('Aceptar'),
                 ),
               ),
             ],

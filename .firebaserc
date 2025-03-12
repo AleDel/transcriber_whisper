@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "asr-whisper-tts-mfa"
-  }
+    "default": "asr-whisper-tts-mfa",
+    "asr2": "asr2-97ee9"
+  },
+  "targets": {},
+  "etags": {}
 }

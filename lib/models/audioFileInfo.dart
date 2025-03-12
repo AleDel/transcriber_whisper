@@ -1,10 +1,11 @@
+import 'package:equatable/equatable.dart';
 import 'package:file_picker/file_picker.dart';
 
-class AudioFileInfo {
+class AudioFileInfo extends Equatable {
   final PlatformFile file;
   final Duration? duration;
 
-  AudioFileInfo({required this.file, this.duration});
+  const AudioFileInfo({required this.file, this.duration});
 
   AudioFileInfo copyWith({
     PlatformFile? file,
@@ -15,4 +16,7 @@ class AudioFileInfo {
       duration: duration ?? this.duration,
     );
   }
+
+  @override
+  List<Object?> get props => [file, duration];
 }

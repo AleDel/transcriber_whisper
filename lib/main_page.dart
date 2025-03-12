@@ -1,96 +1,108 @@
-import 'dart:io';
-
-import 'package:audioplayers/audioplayers.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
-import 'package:transcriber_whisper/models/audioFileInfo.dart';
+import 'package:get_it/get_it.dart';
+import 'package:transcriber_whisper/cubits/project_cubit.dart';
+import 'package:transcriber_whisper/cubits/session_cubit.dart';
 import 'package:transcriber_whisper/widgets/audio_drop_zone.dart';
+import 'package:transcriber_whisper/widgets/session_detail_page.dart';
+import 'package:file_picker/file_picker.dart';
 
-import 'models/session.dart';
+import 'models/audioFileInfo.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({Key? key}) : super(key: key);
+  final String projectId;
+  const MainPage({Key? key, required this.projectId}) : super(key: key);
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  final audioPlayer = AudioPlayer();
-  String _originalText = '';
-  List<AudioFileInfo> _files = [];
+  final List<bool> _isExpandedList = [];
+  late SessionCubit _sessionCubit;
+  late ProjectCubit _projectCubit;
 
   @override
-  void dispose() {
-    audioPlayer.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    context.read<ProjectCubit>().getProject(widget.projectId);
+    _sessionCubit = GetIt.instance<SessionCubit>();
+    _projectCubit = GetIt.instance<ProjectCubit>();
   }
 
   void _onFilesChanged(List<AudioFileInfo> files) {
-    print("Callback Drop Zone en main page, _onFilesChanged: ${files}");
-    final cubit = context.read<TranscribeCubit>();
-    List<PlatformFile> platformFiles = [];
-    for (var fileInfo in files) {
-      platformFiles.add(fileInfo.file);
+    print('_onFilesChanged: ${files.length}');
+    if (files.isNotEmpty) {
+      _projectCubit.addSessionsToProject(files.map((e) => e.file).toList(), projectId: widget.projectId);
+      //cubitProject.addSessionsToProject(files.map((e) => e.file).toList(), projectId: widget.projectId);
     }
-    cubit.addFiles(platformFiles);
-
   }
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<TranscribeCubit>();
+    final cubitProject = context.read<ProjectCubit>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transcriber Whisper'),
       ),
-      body: BlocBuilder<TranscribeCubit, TranscribeState>(
+      body: BlocBuilder<ProjectCubit, ProjectState>(
         builder: (context, state) {
-          if (state.currentProject != null && state.currentProject!.sessions.isNotEmpty) {
-            _originalText = state.currentProject!.sessions.first.originalText ?? "";
+          if (state.project != null) {
+            if (_isExpandedList.length != state.project!.sessionsData.length) {
+              // Si la cantidad de sesiones ha cambiado, actualizamos _isExpandedList
+              _isExpandedList.clear(); // Limpiamos la lista
+              for (var i = 0; i < state.project!.sessionsData.length; i++) {
+                _isExpandedList.add(false); // Agregamos elementos con valor false
+              }
+            }
           }
           return Column(
             children: [
               // Lista de Sesiones
-              if (state.currentProject != null && state.currentProject!.sessions.isNotEmpty)
+              if (state.project != null && state.project!.sessionsData.isNotEmpty)
                 Expanded(
                   child: ListView.builder(
-                    itemCount: state.currentProject!.sessions.length,
+                    itemCount: state.project!.sessionsData.length,
                     itemBuilder: (context, index) {
-                      final session = state.currentProject!.sessions[index];
-                      return ListTile(
-                        title: Text('Sesión ${index + 1} - ${session.audioFilename}'),
-                        subtitle: session.status == SessionStatus.processingAudio
-                            ? const Text("Procesando Audio")
-                            : session.status == SessionStatus.transcribing
-                            ? const Text("Transcribiendo")
-                            : session.status == SessionStatus.completed
-                            ? const Text("Completado")
-                            : session.status == SessionStatus.error
-                            ? const Text("Error")
-                            : const Text("Pendiente"),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      final session = state.project!.sessionsData[index];
+                      return GestureDetector(
+                        // Añadimos GestureDetector
+                        onTap: () async {
+                          print("Le di a: ${session.id}");
+                          //await _sessionCubit.loadSession(session.id);
+                          // _sessionCubit.setSession(session);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Center(child: Text("cambiar esto"),)//SessionDetailPage(session: session),
+                            ),
+                          );
+                        },
+                        child: ExpansionPanelList(
+                          expansionCallback: (int panelIndex, bool isExpanded) {
+                            setState(() {
+                              _isExpandedList[index] = !_isExpandedList[index];
+                            });
+                          },
                           children: [
-                            if (session.status != SessionStatus.processingAudio && session.status != SessionStatus.transcribing && session.status != SessionStatus.completed)
-                              IconButton(
-                                icon: const Icon(Icons.play_arrow),
-                                onPressed: () async {
-                                  await cubit.processSession(session);
-                                  //await cubit.processAndTranscribeFiles(state.currentProject!.id, [PlatformFile(name: session.audioFilename, path: session.wavFilename, size: 0)]);
-                                },
-                              ),
-                            if (session.status == SessionStatus.processingAudio || session.status == SessionStatus.transcribing) const CircularProgressIndicator(),
+                            ExpansionPanel(
+                              headerBuilder: (BuildContext context, bool isExpanded) {
+                                return ListTile(
+                                  //title: Text('Sesión ${index + 1}'),
+                                  title: Text('Sesión ${session.id}'),
+                                  subtitle: Text('Nombre: ${session.audioFilename}'),
+                                );
+                              },
+                              body: const Center(child: Text('No hay nada')),
+                              isExpanded: _isExpandedList[index],
+                            ),
                           ],
                         ),
                       );
                     },
                   ),
                 ),
-              if (state.currentProject != null && state.currentProject!.sessions.isEmpty)
+              if (state.project != null && state.project!.sessionsData.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(16.0),
                   child: Text('No hay sesiones guardadas para este proyecto.'),
@@ -107,7 +119,7 @@ class _MainPageState extends State<MainPage> {
                         showModalBottomSheet(
                           context: context,
                           builder: (BuildContext context) {
-                            return BlocBuilder<TranscribeCubit, TranscribeState>(
+                            return BlocBuilder<ProjectCubit, ProjectState>(
                               builder: (context, state) {
                                 return SizedBox(
                                   height: 300, // Ajusta la altura según tus necesidades
@@ -115,34 +127,24 @@ class _MainPageState extends State<MainPage> {
                                     children: [
                                       Expanded(
                                         child: AudioDropZone(
-                                          onFilesChanged: _onFilesChanged,
+                                          onFilesChanged: (files) => _onFilesChanged(files),
+                                          onFilesReady: () {
+                                            print("ssss");
+                                          },
                                         ),
                                       ),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: state.files.isEmpty
-                                                ? null
-                                                : () async {
-                                              if (state.currentProject != null) {
-                                                await cubit.addFilesToProject(state.currentProject!.id, state.files);
-                                                cubit.clearFiles();
-                                                Navigator.pop(context); // Cerrar el BottomSheet
-                                              }
-                                            },
-                                            child: const Text('Aceptar'),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          ElevatedButton(
-                                            onPressed: () async {
-                                              cubit.clearFiles();
-                                              Navigator.pop(context); // Cerrar el BottomSheet
-                                            },
-                                            child: const Text('Cancelar'),
-                                          ),
-                                        ],
-                                      ),
+                                      ElevatedButton(
+                                        onPressed: state.files.isEmpty
+                                            ? null
+                                            : () async {
+                                                if (state.project != null) {
+                                                  //await cubitProject.addFilesToProject(state.project!.id, state.files);
+                                                  cubitProject.clearFiles();
+                                                  Navigator.pop(context); // Cerrar el BottomSheet
+                                                }
+                                              },
+                                        child: const Text('Aceptar'),
+                                      )
                                     ],
                                   ),
                                 );
@@ -155,58 +157,24 @@ class _MainPageState extends State<MainPage> {
                     ),
                     const SizedBox(width: 16), // Espacio entre los botones
                     ElevatedButton(
-                      onPressed: state.currentProject == null
+                      onPressed: state.project == null
                           ? null
                           : () async {
-                        await cubit.deleteAllSessions(state.currentProject!.id);
-                      },
+                              // Aquí podrías mostrar un diálogo para que el usuario elija el proyecto
+                              // o podrías usar el primer proyecto de la lista
+                              if (state.project != null) {
+                                final projectId = state.project!.id;
+                                await cubitProject.deleteAllSessions(projectId);
+                              }
+                            },
                       child: const Text('Borrar Sesiones'),
                     ),
                   ],
                 ),
               ),
-              // Lista de Archivos
-              // Transcripción (Solo visible cuando hay una transcripción)
-              if (state.transcription != null)
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: state.transcription!.segments.length,
-                    itemBuilder: (context, index) {
-                      final segment = state.transcription!.segments[index];
-                      return ListTile(
-                        title: Text(segment.word),
-                        subtitle: Text('Start: ${segment.start}, End: ${segment.end}'),
-                      );
-                    },
-                  ),
-                ),
-              // Texto Original
-              if (state.currentProject != null)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    controller: TextEditingController(text: _originalText),
-                    onChanged: (value) {
-                      setState(() {
-                        _originalText = value;
-                      });
-                      if (state.currentProject != null) {
-                        if (state.currentProject!.sessions.isNotEmpty) {
-                          cubit.saveOriginalText(state.currentProject!.id, state.currentProject!.sessions.first.id, value);
-                        }
-                      }
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Texto original',
-                    ),
-                  ),
-                ),
+
               // Información Adicional
-              if (state.extradata != null)
-                Text(
-                  'Audio Position: ${state.extradata!.audioPosition ?? 0}, Current Word Index: ${state.extradata!.currentWordIndex ?? 0}',
-                ),
-              if (state.status == TranscribeStatus.noserver) Center(child: Text('Error: ${state.errorMessage} ${state.errorDetails}'))
+              if (state.status == ProjectStatus.error) Center(child: Text('Error de conexión al servidor ${state.errorMessage} ${state.errorDetails}'))
             ],
           );
         },
