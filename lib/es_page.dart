@@ -1,28 +1,29 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
 import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
-import 'package:transcriber_whisper/widgets/floatingWindow_widget.dart';
-import 'package:transcriber_whisper/widgets/mfaLogs_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
 import 'package:transcriber_whisper/widgets/slider_widget.dart';
 import 'package:transcriber_whisper/widgets/vertical_widget.dart';
 
-class HomePage3 extends StatefulWidget {
-  const HomePage3({super.key});
+class ESPage extends StatefulWidget {
+  const ESPage({super.key});
 
   @override
-  State<HomePage3> createState() => _HomePage3State();
+  State<ESPage> createState() => _ESPageState();
 }
 
-class _HomePage3State extends State<HomePage3> {
+class _ESPageState extends State<ESPage> {
   final ScrollController _scrollController = ScrollController();
   GetIt getIt = GetIt.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    getIt<TranscribeCubit>().useMockTranscriptionES();
+  }
 
   @override
   void dispose() {
@@ -33,7 +34,7 @@ class _HomePage3State extends State<HomePage3> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //appBar: AppBar(title: const Text('Transcriber')),
+      appBar: AppBar(title: const Text('LA TORTUGA KALI')),
       body: Stack(
         children: [
           BlocBuilder<TranscribeCubit, TranscribeState>(
@@ -52,21 +53,21 @@ class _HomePage3State extends State<HomePage3> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     // botones transcribir, etc
-                    Row(
+                    /*Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton(onPressed: () async => getIt<TranscribeCubit>().pickAudioFile(), child: const Text('Cargar Audio')),
-                        ElevatedButton(onPressed: () async => getIt<TranscribeCubit>().useMockTranscription(), child: const Text('Usar Mock data')),
+                        ElevatedButton(onPressed: () async => getIt<TranscribeCubit>().useMockTranscriptionES(), child: const Text('Usar Mock data')),
                       ],
-                    ),
+                    ),*/
                     // interfaz grafica principal
                     state.transcription != null
                         ? Expanded(
                           child: Column(
                             children: [
                               AudioPlayerWidget(),
-                              if (state.waveformImageBase64 != null) Image.memory(base64Decode(state.waveformImageBase64!), width: 500, height: 100),
-                              if (state.melSpectrogramBase64 != null) Image.memory(base64Decode(state.melSpectrogramBase64!), width: 500, height: 100),
+                              //if (state.waveformImageBase64 != null) Image.memory(base64Decode(state.waveformImageBase64!), width: 500, height: 100),
+                              //if (state.melSpectrogramBase64 != null) Image.memory(base64Decode(state.melSpectrogramBase64!), width: 500, height: 100),
                               SingleChildScrollView(
                                 controller: _scrollController,
                                 scrollDirection: Axis.horizontal,
@@ -122,7 +123,7 @@ class _HomePage3State extends State<HomePage3> {
               );
             },
           ),
-          FloatingWindow(title: "MFA Logs", initialX: 10, initialY: 10, initialWidth: 300, initialHeight: 100, child: MfaLogsWidget()),
+          //FloatingWindow(title: "MFA Logs", initialX: 10, initialY: 10, initialWidth: 300, initialHeight: 100, child: MfaLogsWidget()),
         ],
       ),
     );

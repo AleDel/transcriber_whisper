@@ -71,100 +71,80 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
             width: 500,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Text("Play and Stop on Select"),
-                      Switch(
-                        value: _internalPlayAndStopWordOnSelect,
-                        onChanged: (value) {
-                          setState(() {
-                            _internalPlayAndStopWordOnSelect = value;
-                          });
-                          getIt<TranscribeCubit>().togglePlayAndStopWordOnSelect();
-                        },
-                      ),
-                    ],
+              child: Listener(
+              onPointerDown: (event) {
+                if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+                  final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
+                  if (renderObject is RenderBox) {
+                    final localPosition = renderObject.globalToLocal(event.position);
+                    final int wordIndex = _findWordIndexFromOffset(localPosition);
+                    showContextMenu( event.position, wordIndexes: [wordIndex]);
+                  }
+                }
+              },
+              child: GestureDetector(
+                onTapDown: (details) {
+                  final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
+                  if (renderObject is RenderBox) {
+                    final localPosition = renderObject.globalToLocal(details.globalPosition);
+                    final int wordIndex = _findWordIndexFromOffset(localPosition);
+                    widget.onWordTap(wordIndex);
+                  }
+                },
+                onLongPressStart: (details) {
+                  final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
+                  if (renderObject is RenderBox) {
+                    final localPosition = renderObject.globalToLocal(details.globalPosition);
+                    final int wordIndex = _findWordIndexFromOffset(localPosition);
+                    setState(() {
+                      _selectionStart = wordIndex;
+                      _selectionEnd = wordIndex;
+                    });
+                  }
+                },
+                onLongPressMoveUpdate: (details) {
+                  final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
+                  if (renderObject is RenderBox) {
+                    final localPosition = renderObject.globalToLocal(details.globalPosition);
+                    final int wordIndex = _findWordIndexFromOffset(localPosition);
+                    setState(() {
+                      _selectionEnd = wordIndex;
+                    });
+                  }
+                },
+                onLongPressEnd: (details) {
+                  final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
+                  if (renderObject is RenderBox) {
+                    final localPosition = renderObject.globalToLocal(details.globalPosition);
+                    final int wordIndex = _findWordIndexFromOffset(localPosition);
+                    final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
+                    final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
+                    final List<int> selectedIndexes = List.generate(upper - lower + 1, (i) => lower + i);
+                    showContextMenu(details.globalPosition, wordIndexes: selectedIndexes);
+                  }
+                },
+                onLongPressCancel: () {
+                  setState(() {
+                    _selectionStart = null;
+                    _selectionEnd = null;
+                  });
+                },
+                child: Text.rich(
+                  key: _textKey,
+                  TextSpan(
+                    children:
+                    widget.transcription.segments.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      var wordData = entry.value;
+                      return TextSpan(
+                        text: '${wordData.word} ',
+                        style: TextStyle(backgroundColor: index == widget.currentWordIndex ? Colors.yellow : _getWordBackgroundColor(index)),
+                      );
+                    }).toList(),
                   ),
-                  Listener(
-                    onPointerDown: (event) {
-                      if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
-                        final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
-                        if (renderObject is RenderBox) {
-                          final localPosition = renderObject.globalToLocal(event.position);
-                          final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          showContextMenu(context, event.position, [wordIndex]);
-                        }
-                      }
-                    },
-                    child: GestureDetector(
-                      onTapDown: (details) {
-                        final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
-                        if (renderObject is RenderBox) {
-                          final localPosition = renderObject.globalToLocal(details.globalPosition);
-                          final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          widget.onWordTap(wordIndex);
-                        }
-                      },
-                      onLongPressStart: (details) {
-                        final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
-                        if (renderObject is RenderBox) {
-                          final localPosition = renderObject.globalToLocal(details.globalPosition);
-                          final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          setState(() {
-                            _selectionStart = wordIndex;
-                            _selectionEnd = wordIndex;
-                          });
-                        }
-                      },
-                      onLongPressMoveUpdate: (details) {
-                        final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
-                        if (renderObject is RenderBox) {
-                          final localPosition = renderObject.globalToLocal(details.globalPosition);
-                          final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          setState(() {
-                            _selectionEnd = wordIndex;
-                          });
-                        }
-                      },
-                      onLongPressEnd: (details) {
-                        final RenderObject? renderObject = _textKey.currentContext?.findRenderObject();
-                        if (renderObject is RenderBox) {
-                          final localPosition = renderObject.globalToLocal(details.globalPosition);
-                          final int wordIndex = _findWordIndexFromOffset(localPosition);
-                          final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
-                          final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
-                          final List<int> selectedIndexes = List.generate(upper - lower + 1, (i) => lower + i);
-                          showContextMenu(context, details.globalPosition, selectedIndexes);
-                        }
-                      },
-                      onLongPressCancel: () {
-                        setState(() {
-                          _selectionStart = null;
-                          _selectionEnd = null;
-                        });
-                      },
-                      child: Text.rich(
-                        key: _textKey,
-                        TextSpan(
-                          children:
-                              widget.transcription.segments.asMap().entries.map((entry) {
-                                int index = entry.key;
-                                var wordData = entry.value;
-                                return TextSpan(
-                                  text: '${wordData.word} ',
-                                  style: TextStyle(backgroundColor: index == widget.currentWordIndex ? Colors.yellow : _getWordBackgroundColor(index)),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
+            ),
             ),
           ),
         );

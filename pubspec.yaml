@@ -30,4 +30,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-  - assets/
+  - assets/9183-2-2660_16000hz.wav
+  - assets/audio_prueba.wav
+  - assets/texto_ITSAS_IZARRAK.txt
+  - assets/transcriptionWhisper.json

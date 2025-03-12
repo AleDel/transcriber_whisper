@@ -147,7 +147,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                             onPointerDown: (event) {
                               if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
                                 // Clic secundario (clic derecho)
-                                showContextMenu(context, event.position, [widget.transcription.segments.indexOf(wordData)]);
+                               showContextMenu(event.position, wordIndexes: [widget.transcription.segments.indexOf(wordData)]);
                               }
                             },
                             child: GestureDetector(
@@ -155,7 +155,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                                 widget.onWordTap(widget.transcription.segments.indexOf(wordData));
                               },
                               onLongPressStart: (details) {
-                                showContextMenu(context, details.globalPosition, [widget.transcription.segments.indexOf(wordData)]);
+                                showContextMenu(details.globalPosition,wordIndexes:  [widget.transcription.segments.indexOf(wordData)]);
                               },
                               child: Column(
                                 children: [

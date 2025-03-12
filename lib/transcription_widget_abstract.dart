@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/widgets/segmentEditor_widget.dart';
 
 abstract class TranscriptionWidget extends StatefulWidget {
   final Transcription transcription;
@@ -28,6 +29,12 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   bool internalAutoScrollEnabled = true;
   final GetIt getIt = GetIt.instance;
 
+  //
+  Map<String, Color> get _availableTags => TranscribeCubit.availableTags;
+  bool _tagSelected = false;
+  List<int> _selectedIndexes = [];
+  //
+
   @override
   void initState() {
     super.initState();
@@ -44,9 +51,167 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     }
   }
 
-  void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
+  /*void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
     getIt<TranscribeCubit>().showContextMenu(context, position, selectedIndexes);
+  }*/
+
+  /////// nuevo
+  List<String> _getSelectedTags() {
+    if (_selectedIndexes.isEmpty) {
+      return [];
+    }
+    List<String> tags = [];
+    final sessionCubit = getIt<TranscribeCubit>();
+    if (sessionCubit.state.transcription == null) return [];
+    for (int i in _selectedIndexes) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.segments.length) {
+        tags.addAll(sessionCubit.state.transcription!.segments[i].tags);
+      }
+    }
+    return tags.toSet().toList();
   }
+  void showContextMenu(Offset position, {List<int>? wordIndexes}) async {
+    _tagSelected = false;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    if (wordIndexes != null) {
+      _selectedIndexes = wordIndexes;
+    }
+    final List<String> selectedTags = _getSelectedTags();
+    await showMenu(
+      context: context,
+      position: RelativeRect.fromRect(position & const Size(40, 40), Offset.zero & overlay.size),
+      items: <PopupMenuEntry>[
+        /*PopupMenuItem(
+          value: 'edit',
+          child: ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Editar'),
+          ),
+          onTap: () {
+            if (_selectedIndexes.isNotEmpty) {
+              if (_selectedIndexes.length == 1) {
+                _editSegment(context, _selectedIndexes.first);
+              } else {
+                _editSegments(context, _selectedIndexes);
+              }
+            }
+          },
+        ),*/
+        PopupMenuItem(
+          child: const Text('Seleccionar'),
+          onTap: () {
+            if (wordIndexes != null) {
+              setState(() {
+                _selectedIndexes.addAll(wordIndexes);
+              });
+            }
+          },
+        ),
+        PopupMenuItem(
+          child: const Text('Des-Seleccionar'),
+          onTap: () {
+            if (wordIndexes != null) {
+              setState(() {
+                _selectedIndexes.removeWhere((element) => wordIndexes.contains(element));
+              });
+            }
+          },
+        ),
+        const PopupMenuDivider(),
+        if (_selectedIndexes.isNotEmpty)
+          PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Eliminar'),
+            ),
+            onTap: () {
+              if (_selectedIndexes.isNotEmpty) {
+                for (int index in _selectedIndexes) {
+                  getIt<TranscribeCubit>().deleteSegment(index);
+                }
+              }
+            },
+          ),
+        ..._availableTags.entries.map((entry) {
+          final String tag = entry.key;
+          final String symbol = TranscribeCubit.tagToSymbol[tag] ?? tag;
+          final Color color = entry.value;
+          final bool isSelected = selectedTags.contains(tag);
+          return PopupMenuItem<String>(
+            value: tag,
+            child: ListTile(
+              leading: Icon(Icons.tag, color: color),
+              title: Text(symbol),
+              trailing: isSelected ? const Icon(Icons.check) : null,
+            ),
+            onTap: () {
+              _tagSelected = true;
+              if (isSelected) {
+                _removeTagFromSelection(tag);
+              } else {
+                _applyTagToSelection(tag);
+              }
+              setState(() {});
+            },
+          );
+        }).toList(),
+      ],
+    );
+    if (!_tagSelected) {setState(() {
+      _selectedIndexes = [];
+    });
+    }
+  }
+
+  void _editSegment(BuildContext context, int index) {
+    final sessionCubit = getIt<TranscribeCubit>();
+    if (sessionCubit.state.transcription == null) return;
+    final segment = sessionCubit.state.transcription!.segments[index];
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SegmentEditor(
+          segment: segment,
+          onSave: (newSegment) {
+            getIt<TranscribeCubit>().editSegment(newSegment);
+          },
+        );
+      },
+    );
+  }
+
+  void _applyTagToSelection(String tag) {
+    final transcriberCubit = getIt<TranscribeCubit>();
+    if (transcriberCubit.state.transcription == null) return;
+    if (_selectedIndexes.isEmpty) {
+      return;
+    }
+    for (int i in _selectedIndexes) {
+      if (i >= 0 && i < transcriberCubit.state.transcription!.segments.length) {
+        transcriberCubit.addTagToSegment(i, tag);
+      }
+    }
+    setState(() {
+      _selectedIndexes.clear();
+    });
+  }
+
+  void _removeTagFromSelection(String tag) {
+    final sessionCubit = getIt<TranscribeCubit>();
+    if (sessionCubit.state.transcription == null) return;
+    if (_selectedIndexes.isEmpty) {
+      return;
+    }
+    for (int i in _selectedIndexes) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.segments.length) {
+        sessionCubit.removeTagFromSegment(i, tag);
+      }
+    }
+    setState(() {});
+  }
+
+  /////// fin nuevo
 
   Color getMixedTagColor(List<String> tags) {
     if (tags.isEmpty) {

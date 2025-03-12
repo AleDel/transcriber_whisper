@@ -18,7 +18,6 @@ import 'package:transcriber_whisper/transcribe_state.dart';
 
 import 'mockData/textotest.dart';
 
-
 class TranscribeCubit extends Cubit<TranscribeState> {
   TranscribeCubit() : super(const TranscribeState(status: TranscribeStatus.initial)) {
     //initSocket();
@@ -38,13 +37,26 @@ class TranscribeCubit extends Cubit<TranscribeState> {
   final int totalSamples = 512;
 
   static Map<String, Color> availableTags = {
-    "Omisión": Colors.red,
-    "Relectura": Colors.green,
-    "Repetición": Colors.blue,
-    "Corrección": Colors.purple,
-    'Tag5': Colors.orange,
-    'Tag6': Colors.pink,
-
+    'Omisioa': Colors.red[200]!,
+    'Ordezkapena': Colors.green[200]!,
+    'Asmaketa': Colors.blue[200]!,
+    'Berrirakurtzea': Colors.purple[200]!,
+    'Zuzenketa': Colors.orange[200]!,
+    'Gehikuntza': Colors.pink[200]!,
+    'Inbertsioa': Colors.yellow[200]!,
+    'Jauzia': Colors.teal[200]!,
+    'Errepikapena': Colors.indigo[200]!,
+  };
+  static Map<String, String> tagToSymbol = {
+    'Omisioa': '-',
+    'Ordezkapena': 'O',
+    'Asmaketa': 'A',
+    'Berrirakurtzea': 'B',
+    'Zuzenketa': 'Z',
+    'Gehikuntza': '+',
+    'Inbertsioa': 'I',
+    'Jauzia': 'J',
+    'Errepikapena': 'E',
   };
 
   void initSocket() {
@@ -89,7 +101,6 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     audioPlayer.onPlayerComplete.listen((event) {
       emit(state.copyWith(status: TranscribeStatus.isPlayercompleted));
     });
-
   }
 
   Future<void> alignAudio(PlatformFile audioFile, String text) async {
@@ -143,7 +154,6 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       emit(state.copyWith(status: TranscribeStatus.error));
     }
   }
-
 
   Future<void> transcribeAudio(PlatformFile audioFile) async {
     emit(state.copyWith(status: TranscribeStatus.loading));
@@ -199,7 +209,8 @@ class TranscribeCubit extends Cubit<TranscribeState> {
         errorMessage = "Error de comunicación con el servidor";
       } else if (e is Exception) {
         errorMessage = e.toString();
-      }print('Error: $e');
+      }
+      print('Error: $e');
       emit(state.copyWith(status: TranscribeStatus.error, errorMessage: errorMessage));
     } finally {
       emit(state.copyWith(status: TranscribeStatus.loaded));
@@ -223,11 +234,21 @@ class TranscribeCubit extends Cubit<TranscribeState> {
     }
   }
 
-  Future<void> useMockTranscription() async {
+  Future<void> useMockTranscriptionEU() async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
+    String jsonString = await rootBundle.loadString('assets/transcriptionWhisper.json');
+    List<dynamic> jsonList = json.decode(jsonString);
+    List<Map<String, dynamic>> listMap = jsonList.map((item) => item as Map<String, dynamic>).toList();
+    transcription = Transcription.fromListMap(listMap);
+    await audioPlayer.setSource(AssetSource('audio_prueba.wav'));
+    emit(state.copyWith(status: TranscribeStatus.loaded, transcription: transcription));
+  }
+
+  Future<void> useMockTranscriptionES() async {
+    emit(state.copyWith(status: TranscribeStatus.loading));
     transcription = Transcription.fromListMap(textoMock);
-    //await audioPlayer.setSource(DeviceFileSource(audioFilePath));
     await audioPlayer.setSource(AssetSource('9183-2-2660_16000hz.wav'));
-    emit(state.copyWith(status: TranscribeStatus.loaded, transcription: transcription)); /**/
+    emit(state.copyWith(status: TranscribeStatus.loaded, transcription: transcription));
   }
 
   void toggleEditMode() {
@@ -342,13 +363,7 @@ class TranscribeCubit extends Cubit<TranscribeState> {
   }
 
   void togglePlayAndStopWordOnSelect() {
-    emit(
-      state.copyWith(
-        extradata: state.extradata?.copyWith(
-          playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect,
-        ),
-      ),
-    );
+    emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
   }
 
   void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
@@ -362,65 +377,65 @@ class TranscribeCubit extends Cubit<TranscribeState> {
       }
     }
     showDialog(
-        context: context,
-        builder: (context) {
-      return AlertDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
           content: SegmentContextMenu(
-          availableTags: availableTags.keys.toList(),
-    selectedTags: selectedTags,
-    editMode: state.editMode,
-    onTagAdded: (tag) {
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    addTagToSegment(index, tag);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    addTagToSegment(index, tag);
-    }
-    }
-    },
-    onTagRemoved: (tag) {
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    removeTagFromSegment(index, tag);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    removeTagFromSegment(index, tag);
-    }
-    }
-    },
-    onEdit: () {
-    Navigator.of(context).pop();
-    if (selectedIndexes.isNotEmpty) {
-    _editSegments(context, selectedIndexes);
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-    _editSegment(context, index);
-    }
-    }
-    },
-    onDelete: () {
-    Navigator.of(context).pop();
-    if (selectedIndexes.isNotEmpty) {
-    for (int index in selectedIndexes) {
-    deleteSegment(index);
-    }
-    } else {
-    final index = _getSegmentIndexFromOffset(position);
-    if (index != -1) {
-      deleteSegment(index);
-    }
-    }
-    },
+            availableTags: availableTags.keys.toList(),
+            selectedTags: selectedTags,
+            editMode: state.editMode,
+            onTagAdded: (tag) {
+              if (selectedIndexes.isNotEmpty) {
+                for (int index in selectedIndexes) {
+                  addTagToSegment(index, tag);
+                }
+              } else {
+                final index = _getSegmentIndexFromOffset(position);
+                if (index != -1) {
+                  addTagToSegment(index, tag);
+                }
+              }
+            },
+            onTagRemoved: (tag) {
+              if (selectedIndexes.isNotEmpty) {
+                for (int index in selectedIndexes) {
+                  removeTagFromSegment(index, tag);
+                }
+              } else {
+                final index = _getSegmentIndexFromOffset(position);
+                if (index != -1) {
+                  removeTagFromSegment(index, tag);
+                }
+              }
+            },
+            onEdit: () {
+              Navigator.of(context).pop();
+              if (selectedIndexes.isNotEmpty) {
+                _editSegments(context, selectedIndexes);
+              } else {
+                final index = _getSegmentIndexFromOffset(position);
+                if (index != -1) {
+                  _editSegment(context, index);
+                }
+              }
+            },
+            onDelete: () {
+              Navigator.of(context).pop();
+              if (selectedIndexes.isNotEmpty) {
+                for (int index in selectedIndexes) {
+                  deleteSegment(index);
+                }
+              } else {
+                final index = _getSegmentIndexFromOffset(position);
+                if (index != -1) {
+                  deleteSegment(index);
+                }
+              }
+            },
             selectedIndexes: selectedIndexes,
           ),
-      );
-        },
+        );
+      },
     );
   }
 
