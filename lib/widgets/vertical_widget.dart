@@ -58,7 +58,7 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.segments.isEmpty) return;
+    if (widget.currentWordIndex == -1 || widget.transcription.transsegments.isEmpty) return;
     _itemScrollController.scrollTo(
       index: widget.currentWordIndex,
       duration: const Duration(milliseconds: 300),
@@ -89,9 +89,9 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
               child: ScrollablePositionedList.builder(
                 itemScrollController: _itemScrollController,
                 itemPositionsListener: _itemPositionsListener,
-                itemCount: widget.transcription.segments.length,
+                itemCount: widget.transcription.transsegments.length,
                 itemBuilder: (context, index) {
-                  final wordData = widget.transcription.segments[index];
+                  final wordData = widget.transcription.transsegments[index];
                   final isCurrentWord = index == widget.currentWordIndex;
                   final startMillis = (wordData.start * 1000).toInt();
                   final endMillis = (wordData.end * 1000).toInt();

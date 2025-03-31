@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 
+import '../models/segment.dart';
+
 class SegmentEditor extends StatefulWidget {
   final Segment segment;
   final Function(Segment) onSave;

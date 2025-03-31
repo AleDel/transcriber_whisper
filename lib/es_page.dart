@@ -5,7 +5,7 @@ import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
 import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
-import 'package:transcriber_whisper/widgets/slider_widget.dart';
+import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
 import 'package:transcriber_whisper/widgets/vertical_widget.dart';
 
 class ESPage extends StatefulWidget {

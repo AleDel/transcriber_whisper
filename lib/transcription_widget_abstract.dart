@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
 import 'package:transcriber_whisper/widgets/segmentEditor_widget.dart';
 
 abstract class TranscriptionWidget extends StatefulWidget {
@@ -64,12 +62,13 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     final sessionCubit = getIt<TranscribeCubit>();
     if (sessionCubit.state.transcription == null) return [];
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.segments.length) {
-        tags.addAll(sessionCubit.state.transcription!.segments[i].tags);
+      if (i >= 0 && i < sessionCubit.state.transcription!.transsegments.length) {
+        tags.addAll(sessionCubit.state.transcription!.transsegments[i].tags);
       }
     }
     return tags.toSet().toList();
   }
+
   void showContextMenu(Offset position, {List<int>? wordIndexes}) async {
     _tagSelected = false;
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
@@ -97,6 +96,10 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
             }
           },
         ),*/
+        /*PopupMenuItem(
+          child:  Text('"${getIt<Transcription>().transsegments[_selectedIndexes.first].word}"'),
+        ),*/
+        const PopupMenuDivider(),
         PopupMenuItem(
           child: const Text('Seleccionar'),
           onTap: () {
@@ -121,10 +124,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
         if (_selectedIndexes.isNotEmpty)
           PopupMenuItem(
             value: 'delete',
-            child: ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Eliminar'),
-            ),
+            child: ListTile(leading: const Icon(Icons.delete), title: const Text('Eliminar')),
             onTap: () {
               if (_selectedIndexes.isNotEmpty) {
                 for (int index in _selectedIndexes) {
@@ -140,11 +140,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
           final bool isSelected = selectedTags.contains(tag);
           return PopupMenuItem<String>(
             value: tag,
-            child: ListTile(
-              leading: Icon(Icons.tag, color: color),
-              title: Text(symbol),
-              trailing: isSelected ? const Icon(Icons.check) : null,
-            ),
+            child: ListTile(leading: Icon(Icons.tag, color: color), title: Text(symbol), trailing: isSelected ? const Icon(Icons.check) : null),
             onTap: () {
               _tagSelected = true;
               if (isSelected) {
@@ -158,16 +154,17 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
         }).toList(),
       ],
     );
-    if (!_tagSelected) {setState(() {
-      _selectedIndexes = [];
-    });
+    if (!_tagSelected) {
+      setState(() {
+        _selectedIndexes = [];
+      });
     }
   }
 
   void _editSegment(BuildContext context, int index) {
     final sessionCubit = getIt<TranscribeCubit>();
     if (sessionCubit.state.transcription == null) return;
-    final segment = sessionCubit.state.transcription!.segments[index];
+    final segment = sessionCubit.state.transcription!.transsegments[index];
     showDialog(
       context: context,
       builder: (context) {
@@ -188,7 +185,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < transcriberCubit.state.transcription!.segments.length) {
+      if (i >= 0 && i < transcriberCubit.state.transcription!.transsegments.length) {
         transcriberCubit.addTagToSegment(i, tag);
       }
     }
@@ -204,7 +201,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.segments.length) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.transsegments.length) {
         sessionCubit.removeTagFromSegment(i, tag);
       }
     }
@@ -215,7 +212,8 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
 
   Color getMixedTagColor(List<String> tags) {
     if (tags.isEmpty) {
-      return Colors.transparent;
+      //return Colors.transparent;
+      return Colors.white;
     }
 
     if (tags.length == 1) {
@@ -223,10 +221,10 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     }
 
     List<Color> tagColors = tags.map((tag) => TranscribeCubit.availableTags[tag] ?? Colors.transparent).toList();
-    return _mixMultipleColors(tagColors);
+    return mixMultipleColors(tagColors);
   }
 
-  Color _mixMultipleColors(List<Color> colors) {
+  Color mixMultipleColors(List<Color> colors) {
     if (colors.isEmpty) {
       return Colors.transparent;
     }
@@ -254,5 +252,6 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     probability = probability.clamp(0.0, 1.0);
     return Color.lerp(colorLow, colorHigh, probability)!;
   }
+
   void scrollToCurrentWord();
 }

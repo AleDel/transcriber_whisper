@@ -24,6 +24,7 @@ class _HomePageState extends State<HomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/testCompare'), child: const Text('prueba_diff')),
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/EUTextPage'), child: const Text('ITSAS IZARRAK*')),
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/EUPage'), child: const Text('ITSAS IZARRAK')),
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/ESPage'), child: const Text('LA TORTUGA KALI')),

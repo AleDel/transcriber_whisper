@@ -1,0 +1,1244 @@
+[
+  {
+    "word": "Itsas",
+    "start": 0.0,
+    "end": 2.46,
+    "probability": 0.72
+  },
+  {
+    "word": "izarrak",
+    "start": 2.46,
+    "end": 3.04,
+    "probability": 0.98
+  },
+  {
+    "word": "bazen",
+    "start": 3.04,
+    "end": 4.52,
+    "probability": 0.87
+  },
+  {
+    "word": "behin",
+    "start": 4.52,
+    "end": 4.96,
+    "probability": 0.56
+  },
+  {
+    "word": "hondartzatik",
+    "start": 4.96,
+    "end": 6.64,
+    "probability": 0.92
+  },
+  {
+    "word": "egunero",
+    "start": 6.64,
+    "end": 7.28,
+    "probability": 1.0
+  },
+  {
+    "word": "pasatzen",
+    "start": 7.28,
+    "end": 8.04,
+    "probability": 1.0
+  },
+  {
+    "word": "zuen",
+    "start": 8.04,
+    "end": 8.94,
+    "probability": 1.0
+  },
+  {
+    "word": "gizonak",
+    "start": 8.94,
+    "end": 9.86,
+    "probability": 0.98
+  },
+  {
+    "word": "goiz",
+    "start": 9.86,
+    "end": 11.18,
+    "probability": 0.78
+  },
+  {
+    "word": "hartan.",
+    "start": 11.18,
+    "end": 11.7,
+    "probability": 1.0
+  },
+  {
+    "word": "Itsatzetza",
+    "start": 12.0,
+    "end": 13.88,
+    "probability": 0.58
+  },
+  {
+    "word": "itsas",
+    "start": 13.88,
+    "end": 15.44,
+    "probability": 0.76
+  },
+  {
+    "word": "izarrez",
+    "start": 15.44,
+    "end": 17.42,
+    "probability": 0.73
+  },
+  {
+    "word": "eta",
+    "start": 17.42,
+    "end": 18.8,
+    "probability": 0.93
+  },
+  {
+    "word": "beteta",
+    "start": 18.8,
+    "end": 20.36,
+    "probability": 0.89
+  },
+  {
+    "word": "ikusi",
+    "start": 20.36,
+    "end": 21.48,
+    "probability": 0.99
+  },
+  {
+    "word": "zuen",
+    "start": 21.48,
+    "end": 21.88,
+    "probability": 1.0
+  },
+  {
+    "word": "milaka",
+    "start": 21.88,
+    "end": 22.8,
+    "probability": 0.93
+  },
+  {
+    "word": "zeuden.",
+    "start": 22.8,
+    "end": 23.72,
+    "probability": 0.94
+  },
+  {
+    "word": "Ebulaldi",
+    "start": 25.9,
+    "end": 27.3,
+    "probability": 0.9
+  },
+  {
+    "word": "txarragatik",
+    "start": 27.3,
+    "end": 28.7,
+    "probability": 0.99
+  },
+  {
+    "word": "edo",
+    "start": 28.7,
+    "end": 29.46,
+    "probability": 0.98
+  },
+  {
+    "word": "onartu",
+    "start": 29.46,
+    "end": 30.68,
+    "probability": 0.89
+  },
+  {
+    "word": "asko",
+    "start": 30.68,
+    "end": 34.16,
+    "probability": 0.98
+  },
+  {
+    "word": "zeuden",
+    "start": 34.16,
+    "end": 34.94,
+    "probability": 0.92
+  },
+  {
+    "word": "laku.",
+    "start": 34.94,
+    "end": 35.64,
+    "probability": 0.81
+  },
+  {
+    "word": "Izango",
+    "start": 36.0,
+    "end": 36.42,
+    "probability": 0.5
+  },
+  {
+    "word": "zela",
+    "start": 36.42,
+    "end": 36.82,
+    "probability": 1.0
+  },
+  {
+    "word": "pentsatu",
+    "start": 36.82,
+    "end": 37.52,
+    "probability": 1.0
+  },
+  {
+    "word": "zuen",
+    "start": 37.52,
+    "end": 38.34,
+    "probability": 1.0
+  },
+  {
+    "word": "triste",
+    "start": 38.34,
+    "end": 39.8,
+    "probability": 0.19
+  },
+  {
+    "word": "jarri",
+    "start": 39.8,
+    "end": 40.48,
+    "probability": 0.99
+  },
+  {
+    "word": "zen",
+    "start": 40.48,
+    "end": 40.76,
+    "probability": 0.99
+  },
+  {
+    "word": "bazekielako",
+    "start": 40.76,
+    "end": 42.72,
+    "probability": 0.85
+  },
+  {
+    "word": "izar",
+    "start": 42.72,
+    "end": 43.38,
+    "probability": 0.96
+  },
+  {
+    "word": "txikia",
+    "start": 43.38,
+    "end": 44.06,
+    "probability": 0.93
+  },
+  {
+    "word": "ezin",
+    "start": 44.06,
+    "end": 44.84,
+    "probability": 0.98
+  },
+  {
+    "word": "zirela",
+    "start": 44.84,
+    "end": 46.26,
+    "probability": 1.0
+  },
+  {
+    "word": "ahal.",
+    "start": 46.26,
+    "end": 47.84,
+    "probability": 0.68
+  },
+  {
+    "word": "Ureitara",
+    "start": 48.0,
+    "end": 49.26,
+    "probability": 0.52
+  },
+  {
+    "word": "itzuli",
+    "start": 49.26,
+    "end": 50.42,
+    "probability": 1.0
+  },
+  {
+    "word": "eta",
+    "start": 50.42,
+    "end": 52.26,
+    "probability": 0.56
+  },
+  {
+    "word": "hondarretan",
+    "start": 52.26,
+    "end": 56.0,
+    "probability": 0.84
+  },
+  {
+    "word": "hil",
+    "start": 56.0,
+    "end": 56.5,
+    "probability": 0.98
+  },
+  {
+    "word": "egingo",
+    "start": 56.5,
+    "end": 57.12,
+    "probability": 1.0
+  },
+  {
+    "word": "zirela",
+    "start": 57.12,
+    "end": 57.76,
+    "probability": 1.0
+  },
+  {
+    "word": "denbora",
+    "start": 57.76,
+    "end": 58.7,
+    "probability": 0.99
+  },
+  {
+    "word": "gutia.",
+    "start": 58.7,
+    "end": 59.7,
+    "probability": 0.91
+  },
+  {
+    "word": "Orduan",
+    "start": 61.38,
+    "end": 62.5,
+    "probability": 0.66
+  },
+  {
+    "word": "neska",
+    "start": 62.5,
+    "end": 63.06,
+    "probability": 0.99
+  },
+  {
+    "word": "bat",
+    "start": 63.06,
+    "end": 63.24,
+    "probability": 1.0
+  },
+  {
+    "word": "ikusi",
+    "start": 63.24,
+    "end": 63.7,
+    "probability": 1.0
+  },
+  {
+    "word": "zuen",
+    "start": 63.7,
+    "end": 64.26,
+    "probability": 1.0
+  },
+  {
+    "word": "itsas",
+    "start": 64.26,
+    "end": 64.78,
+    "probability": 0.59
+  },
+  {
+    "word": "izarre",
+    "start": 64.78,
+    "end": 65.28,
+    "probability": 0.72
+  },
+  {
+    "word": "artean",
+    "start": 65.28,
+    "end": 66.9,
+    "probability": 0.99
+  },
+  {
+    "word": "neska",
+    "start": 66.9,
+    "end": 68.68,
+    "probability": 0.77
+  },
+  {
+    "word": "doa",
+    "start": 68.68,
+    "end": 70.04,
+    "probability": 0.9
+  },
+  {
+    "word": "alde",
+    "start": 70.04,
+    "end": 71.18,
+    "probability": 0.98
+  },
+  {
+    "word": "beti.",
+    "start": 71.18,
+    "end": 71.74,
+    "probability": 0.9
+  },
+  {
+    "word": "Irupe",
+    "start": 72.0,
+    "end": 72.52,
+    "probability": 0.27
+  },
+  {
+    "word": "batetik",
+    "start": 72.52,
+    "end": 73.7,
+    "probability": 0.99
+  },
+  {
+    "word": "bestera",
+    "start": 73.7,
+    "end": 74.5,
+    "probability": 0.94
+  },
+  {
+    "word": "ersebilen",
+    "start": 74.5,
+    "end": 76.6,
+    "probability": 0.7
+  },
+  {
+    "word": "eta",
+    "start": 76.6,
+    "end": 77.36,
+    "probability": 0.85
+  },
+  {
+    "word": "oso",
+    "start": 77.36,
+    "end": 78.74,
+    "probability": 1.0
+  },
+  {
+    "word": "lapertuta",
+    "start": 78.74,
+    "end": 80.86,
+    "probability": 0.78
+  },
+  {
+    "word": "zirurien.",
+    "start": 80.86,
+    "end": 83.56,
+    "probability": 0.82
+  },
+  {
+    "word": "Zertan",
+    "start": 85.04,
+    "end": 86.44,
+    "probability": 0.61
+  },
+  {
+    "word": "ari",
+    "start": 86.44,
+    "end": 86.68,
+    "probability": 1.0
+  },
+  {
+    "word": "zara?",
+    "start": 86.68,
+    "end": 86.96,
+    "probability": 1.0
+  },
+  {
+    "word": "galdetu",
+    "start": 87.24,
+    "end": 88.64,
+    "probability": 0.98
+  },
+  {
+    "word": "ziren",
+    "start": 88.64,
+    "end": 89.28,
+    "probability": 0.69
+  },
+  {
+    "word": "gizonak",
+    "start": 89.28,
+    "end": 90.14,
+    "probability": 0.87
+  },
+  {
+    "word": "ahal",
+    "start": 90.14,
+    "end": 91.2,
+    "probability": 0.92
+  },
+  {
+    "word": "dudan",
+    "start": 91.2,
+    "end": 92.36,
+    "probability": 1.0
+  },
+  {
+    "word": "izar",
+    "start": 92.36,
+    "end": 92.78,
+    "probability": 0.56
+  },
+  {
+    "word": "guztiak",
+    "start": 92.78,
+    "end": 93.58,
+    "probability": 1.0
+  },
+  {
+    "word": "ibiltzen.",
+    "start": 93.58,
+    "end": 95.68,
+    "probability": 0.96
+  },
+  {
+    "word": "Zertan",
+    "start": 96.0,
+    "end": 96.64,
+    "probability": 0.2
+  },
+  {
+    "word": "ari",
+    "start": 96.64,
+    "end": 96.64,
+    "probability": 0.46
+  },
+  {
+    "word": "ziren",
+    "start": 96.64,
+    "end": 96.64,
+    "probability": 0.05
+  },
+  {
+    "word": "gizonak",
+    "start": 96.64,
+    "end": 96.64,
+    "probability": 0.22
+  },
+  {
+    "word": "ahal",
+    "start": 96.64,
+    "end": 96.64,
+    "probability": 0.32
+  },
+  {
+    "word": "ditut",
+    "start": 96.64,
+    "end": 96.84,
+    "probability": 0.47
+  },
+  {
+    "word": "eta",
+    "start": 96.84,
+    "end": 97.26,
+    "probability": 0.62
+  },
+  {
+    "word": "itsasora",
+    "start": 97.26,
+    "end": 99.32,
+    "probability": 0.65
+  },
+  {
+    "word": "botatzen",
+    "start": 99.32,
+    "end": 100.24,
+    "probability": 0.99
+  },
+  {
+    "word": "ditut",
+    "start": 100.24,
+    "end": 100.78,
+    "probability": 0.99
+  },
+  {
+    "word": "ez",
+    "start": 100.78,
+    "end": 101.08,
+    "probability": 0.81
+  },
+  {
+    "word": "biltzeko",
+    "start": 101.08,
+    "end": 102.04,
+    "probability": 0.98
+  },
+  {
+    "word": "zabaldu",
+    "start": 102.04,
+    "end": 103.68,
+    "probability": 0.88
+  },
+  {
+    "word": "egin",
+    "start": 103.68,
+    "end": 104.6,
+    "probability": 1.0
+  },
+  {
+    "word": "behar",
+    "start": 104.6,
+    "end": 105.1,
+    "probability": 1.0
+  },
+  {
+    "word": "ditugu.",
+    "start": 105.1,
+    "end": 105.84,
+    "probability": 0.97
+  },
+  {
+    "word": "Orain",
+    "start": 108.24,
+    "end": 109.64,
+    "probability": 1.0
+  },
+  {
+    "word": "konturatu",
+    "start": 109.64,
+    "end": 110.3,
+    "probability": 1.0
+  },
+  {
+    "word": "naiz",
+    "start": 110.3,
+    "end": 110.82,
+    "probability": 0.99
+  },
+  {
+    "word": "erantzun",
+    "start": 110.82,
+    "end": 111.74,
+    "probability": 0.97
+  },
+  {
+    "word": "zuen",
+    "start": 111.74,
+    "end": 112.86,
+    "probability": 1.0
+  },
+  {
+    "word": "gizonak,",
+    "start": 112.86,
+    "end": 113.62,
+    "probability": 1.0
+  },
+  {
+    "word": "hala",
+    "start": 113.72,
+    "end": 114.54,
+    "probability": 0.99
+  },
+  {
+    "word": "ere,",
+    "start": 114.54,
+    "end": 114.8,
+    "probability": 1.0
+  },
+  {
+    "word": "zure",
+    "start": 114.96,
+    "end": 116.66,
+    "probability": 1.0
+  },
+  {
+    "word": "ahalegina?",
+    "start": 116.66,
+    "end": 119.24,
+    "probability": 0.99
+  },
+  {
+    "word": "Zer",
+    "start": 120.0,
+    "end": 120.66,
+    "probability": 0.15
+  },
+  {
+    "word": "gizonak",
+    "start": 120.66,
+    "end": 121.04,
+    "probability": 0.01
+  },
+  {
+    "word": "ez",
+    "start": 121.04,
+    "end": 121.04,
+    "probability": 0.01
+  },
+  {
+    "word": "dituen",
+    "start": 121.04,
+    "end": 121.22,
+    "probability": 0.38
+  },
+  {
+    "word": "berezi,",
+    "start": 121.22,
+    "end": 122.52,
+    "probability": 0.76
+  },
+  {
+    "word": "oso",
+    "start": 122.6,
+    "end": 124.32,
+    "probability": 1.0
+  },
+  {
+    "word": "urrutitik",
+    "start": 124.32,
+    "end": 127.12,
+    "probability": 0.87
+  },
+  {
+    "word": "nator",
+    "start": 127.12,
+    "end": 128.92,
+    "probability": 0.99
+  },
+  {
+    "word": "ibiltzen",
+    "start": 128.92,
+    "end": 129.8,
+    "probability": 0.96
+  },
+  {
+    "word": "eta",
+    "start": 129.8,
+    "end": 130.5,
+    "probability": 0.89
+  },
+  {
+    "word": "itsas.",
+    "start": 130.5,
+    "end": 131.08,
+    "probability": 0.42
+  },
+  {
+    "word": "Gihiegi",
+    "start": 134.36,
+    "end": 135.76,
+    "probability": 0.51
+  },
+  {
+    "word": "dago",
+    "start": 135.76,
+    "end": 137.16,
+    "probability": 0.98
+  },
+  {
+    "word": "hondar",
+    "start": 137.16,
+    "end": 138.1,
+    "probability": 0.78
+  },
+  {
+    "word": "hondar",
+    "start": 138.1,
+    "end": 139.62,
+    "probability": 0.66
+  },
+  {
+    "word": "gainean.",
+    "start": 139.62,
+    "end": 143.46,
+    "probability": 0.99
+  },
+  {
+    "word": "Batzuk",
+    "start": 152.4,
+    "end": 153.6,
+    "probability": 0.69
+  },
+  {
+    "word": "zabaldu",
+    "start": 153.6,
+    "end": 154.36,
+    "probability": 0.87
+  },
+  {
+    "word": "ahal",
+    "start": 154.36,
+    "end": 154.96,
+    "probability": 0.97
+  },
+  {
+    "word": "izango.",
+    "start": 154.96,
+    "end": 155.52,
+    "probability": 0.98
+  },
+  {
+    "word": "Baina",
+    "start": 156.0,
+    "end": 157.42,
+    "probability": 0.58
+  },
+  {
+    "word": "gehienak",
+    "start": 157.42,
+    "end": 159.66,
+    "probability": 0.85
+  },
+  {
+    "word": "hil",
+    "start": 159.66,
+    "end": 160.06,
+    "probability": 1.0
+  },
+  {
+    "word": "egingo",
+    "start": 160.06,
+    "end": 160.54,
+    "probability": 0.96
+  },
+  {
+    "word": "dira,",
+    "start": 160.54,
+    "end": 161.06,
+    "probability": 0.99
+  },
+  {
+    "word": "zure",
+    "start": 161.2,
+    "end": 162.82,
+    "probability": 1.0
+  },
+  {
+    "word": "lanak",
+    "start": 162.82,
+    "end": 163.36,
+    "probability": 0.99
+  },
+  {
+    "word": "ez",
+    "start": 163.36,
+    "end": 163.76,
+    "probability": 1.0
+  },
+  {
+    "word": "du",
+    "start": 163.76,
+    "end": 164.18,
+    "probability": 0.99
+  },
+  {
+    "word": "ezertarako",
+    "start": 164.18,
+    "end": 166.18,
+    "probability": 0.96
+  },
+  {
+    "word": "balioko.",
+    "start": 166.18,
+    "end": 167.46,
+    "probability": 0.81
+  },
+  {
+    "word": "Egiten",
+    "start": 168.0,
+    "end": 168.98,
+    "probability": 1.0
+  },
+  {
+    "word": "duzuena",
+    "start": 168.98,
+    "end": 169.76,
+    "probability": 0.98
+  },
+  {
+    "word": "ez",
+    "start": 169.76,
+    "end": 170.42,
+    "probability": 0.98
+  },
+  {
+    "word": "du",
+    "start": 170.42,
+    "end": 170.88,
+    "probability": 1.0
+  },
+  {
+    "word": "zentzurik,",
+    "start": 170.88,
+    "end": 172.78,
+    "probability": 0.87
+  },
+  {
+    "word": "neskak",
+    "start": 172.9,
+    "end": 176.12,
+    "probability": 1.0
+  },
+  {
+    "word": "arituta",
+    "start": 176.12,
+    "end": 177.46,
+    "probability": 0.99
+  },
+  {
+    "word": "begiratu",
+    "start": 177.46,
+    "end": 178.4,
+    "probability": 1.0
+  },
+  {
+    "word": "zion",
+    "start": 178.4,
+    "end": 179.0,
+    "probability": 0.99
+  },
+  {
+    "word": "gizonak.",
+    "start": 179.0,
+    "end": 179.98,
+    "probability": 0.72
+  },
+  {
+    "word": "Gero",
+    "start": 180.0,
+    "end": 181.54,
+    "probability": 0.52
+  },
+  {
+    "word": "izar",
+    "start": 181.54,
+    "end": 181.94,
+    "probability": 0.9
+  },
+  {
+    "word": "bat",
+    "start": 181.94,
+    "end": 182.78,
+    "probability": 1.0
+  },
+  {
+    "word": "hartu",
+    "start": 182.78,
+    "end": 183.52,
+    "probability": 1.0
+  },
+  {
+    "word": "eta",
+    "start": 183.52,
+    "end": 183.9,
+    "probability": 0.94
+  },
+  {
+    "word": "gizonari",
+    "start": 183.9,
+    "end": 185.1,
+    "probability": 0.95
+  },
+  {
+    "word": "irakutsi",
+    "start": 185.1,
+    "end": 187.14,
+    "probability": 0.94
+  },
+  {
+    "word": "zion",
+    "start": 187.14,
+    "end": 188.1,
+    "probability": 0.57
+  },
+  {
+    "word": "hegazkina,",
+    "start": 188.1,
+    "end": 190.14,
+    "probability": 0.9
+  },
+  {
+    "word": "esan.",
+    "start": 190.24,
+    "end": 191.26,
+    "probability": 0.95
+  },
+  {
+    "word": "Izar",
+    "start": 194.24,
+    "end": 195.64,
+    "probability": 0.47
+  },
+  {
+    "word": "honentzat",
+    "start": 195.64,
+    "end": 197.04,
+    "probability": 0.94
+  },
+  {
+    "word": "badu",
+    "start": 197.04,
+    "end": 198.04,
+    "probability": 0.99
+  },
+  {
+    "word": "zentzua,",
+    "start": 198.04,
+    "end": 199.3,
+    "probability": 0.98
+  },
+  {
+    "word": "gizonak",
+    "start": 199.38,
+    "end": 201.7,
+    "probability": 0.99
+  },
+  {
+    "word": "ulertu",
+    "start": 201.7,
+    "end": 202.92,
+    "probability": 0.99
+  },
+  {
+    "word": "ez",
+    "start": 202.92,
+    "end": 203.38,
+    "probability": 0.92
+  },
+  {
+    "word": "zuen.",
+    "start": 203.38,
+    "end": 203.46,
+    "probability": 0.79
+  },
+  {
+    "word": "Gizonak",
+    "start": 204.0,
+    "end": 204.72,
+    "probability": 0.65
+  },
+  {
+    "word": "ulertu",
+    "start": 204.72,
+    "end": 205.44,
+    "probability": 1.0
+  },
+  {
+    "word": "zuen",
+    "start": 205.44,
+    "end": 205.88,
+    "probability": 0.99
+  },
+  {
+    "word": "neskatoak",
+    "start": 205.88,
+    "end": 207.32,
+    "probability": 0.97
+  },
+  {
+    "word": "arazoi",
+    "start": 207.32,
+    "end": 209.46,
+    "probability": 0.89
+  },
+  {
+    "word": "zuela,",
+    "start": 209.46,
+    "end": 210.5,
+    "probability": 1.0
+  },
+  {
+    "word": "ahal",
+    "start": 210.52,
+    "end": 211.82,
+    "probability": 0.98
+  },
+  {
+    "word": "zuten",
+    "start": 211.82,
+    "end": 212.58,
+    "probability": 0.99
+  },
+  {
+    "word": "izar",
+    "start": 212.58,
+    "end": 213.7,
+    "probability": 0.78
+  },
+  {
+    "word": "gehienak",
+    "start": 213.7,
+    "end": 215.24,
+    "probability": 0.98
+  },
+  {
+    "word": "erakutsi",
+    "start": 215.24,
+    "end": 215.98,
+    "probability": 0.73
+  },
+  {
+    "word": "zion.",
+    "start": 215.98,
+    "end": 215.98,
+    "probability": 0.03
+  },
+  {
+    "word": "Inork",
+    "start": 216.0,
+    "end": 216.92,
+    "probability": 0.07
+  },
+  {
+    "word": "abaltzen",
+    "start": 216.92,
+    "end": 217.74,
+    "probability": 0.61
+  },
+  {
+    "word": "salatu",
+    "start": 217.74,
+    "end": 219.08,
+    "probability": 0.95
+  },
+  {
+    "word": "behar",
+    "start": 219.08,
+    "end": 219.58,
+    "probability": 1.0
+  },
+  {
+    "word": "zuten",
+    "start": 219.58,
+    "end": 220.9,
+    "probability": 0.99
+  },
+  {
+    "word": "eta",
+    "start": 220.9,
+    "end": 221.62,
+    "probability": 0.79
+  },
+  {
+    "word": "neskatoari",
+    "start": 221.62,
+    "end": 223.14,
+    "probability": 0.99
+  },
+  {
+    "word": "laguntzen",
+    "start": 223.14,
+    "end": 225.36,
+    "probability": 0.98
+  },
+  {
+    "word": "hasi",
+    "start": 225.36,
+    "end": 226.64,
+    "probability": 1.0
+  },
+  {
+    "word": "zitzaion.",
+    "start": 226.64,
+    "end": 227.42,
+    "probability": 0.98
+  },
+  {
+    "word": "Handik",
+    "start": 228.0,
+    "end": 229.84,
+    "probability": 1.0
+  },
+  {
+    "word": "gutxira",
+    "start": 229.84,
+    "end": 230.32,
+    "probability": 0.93
+  },
+  {
+    "word": "beste",
+    "start": 230.32,
+    "end": 230.84,
+    "probability": 0.85
+  },
+  {
+    "word": "pertsona",
+    "start": 230.84,
+    "end": 231.66,
+    "probability": 0.98
+  },
+  {
+    "word": "batzuk",
+    "start": 231.66,
+    "end": 232.28,
+    "probability": 1.0
+  },
+  {
+    "word": "ubil",
+    "start": 232.28,
+    "end": 233.02,
+    "probability": 0.52
+  },
+  {
+    "word": "zitzaizkien",
+    "start": 233.02,
+    "end": 236.08,
+    "probability": 0.85
+  },
+  {
+    "word": "eta",
+    "start": 236.08,
+    "end": 237.22,
+    "probability": 0.68
+  },
+  {
+    "word": "izarrak",
+    "start": 237.22,
+    "end": 238.06,
+    "probability": 0.97
+  },
+  {
+    "word": "urtera",
+    "start": 238.06,
+    "end": 238.68,
+    "probability": 0.95
+  },
+  {
+    "word": "eramaten",
+    "start": 238.68,
+    "end": 239.56,
+    "probability": 1.0
+  },
+  {
+    "word": "hasi",
+    "start": 239.56,
+    "end": 239.98,
+    "probability": 0.98
+  },
+  {
+    "word": "zen.",
+    "start": 239.98,
+    "end": 239.98,
+    "probability": 0.2
+  },
+  {
+    "word": "Ziren",
+    "start": 240.0,
+    "end": 240.44,
+    "probability": 0.5
+  },
+  {
+    "word": "izar",
+    "start": 240.44,
+    "end": 240.94,
+    "probability": 0.72
+  },
+  {
+    "word": "asko",
+    "start": 240.94,
+    "end": 241.58,
+    "probability": 0.99
+  },
+  {
+    "word": "errekartu",
+    "start": 241.58,
+    "end": 244.56,
+    "probability": 0.67
+  },
+  {
+    "word": "zituen,",
+    "start": 244.56,
+    "end": 245.6,
+    "probability": 0.99
+  },
+  {
+    "word": "oso",
+    "start": 245.6,
+    "end": 246.42,
+    "probability": 1.0
+  },
+  {
+    "word": "ondo.",
+    "start": 246.42,
+    "end": 246.7,
+    "probability": 1.0
+  }
+]

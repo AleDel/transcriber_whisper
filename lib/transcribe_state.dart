@@ -1,23 +1,19 @@
 import 'package:equatable/equatable.dart';
+import 'package:transcriber_whisper/models/alignment_mfa_data.dart';
 import 'package:transcriber_whisper/models/data_model.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
 
-enum TranscribeStatus {
-  initial,
-  loaded,
-  loading,
-  error,
-  noserver,
-  isPlayerplaying,
-  isPlayerpause,
-  isPlayerstopped,
-  isPlayercompleted,
-  isPlayerdisposed,
-}
+import 'models/comparation_model.dart';
+import 'models/word_with_spans.dart';
+
+enum TranscribeStatus { initial, loaded, loading, error, noserver, isPlayerplaying, isPlayerpause, isPlayerstopped, isPlayercompleted, isPlayerdisposed, success }
 
 class TranscribeState extends Equatable {
   final TranscribeStatus status;
   final Transcription? transcription;
+  final Transcription? realtextComoTranscription;
+  final List<ComparacionSegmento>? comparacion;
+  final AlignmentMFAData? textoEscritoAlineado;
   final Data? extradata;
   final String? melSpectrogramBase64;
   final List<List<double>>? melSpectrogramData;
@@ -26,10 +22,15 @@ class TranscribeState extends Equatable {
   final List<String>? logs_mfa;
   final bool editMode;
   final String? errorMessage;
+  final List<WordWithSpans> wordsWithSpans;
+  final String? textoRealformadoparrafos;
 
   const TranscribeState({
     required this.status,
     this.transcription,
+    this.realtextComoTranscription,
+    this.comparacion,
+    this.textoEscritoAlineado,
     this.extradata = const Data(),
     this.melSpectrogramBase64,
     this.melSpectrogramData,
@@ -38,11 +39,16 @@ class TranscribeState extends Equatable {
     this.logs_mfa,
     this.editMode = true,
     this.errorMessage,
+    this.wordsWithSpans = const [],
+    this.textoRealformadoparrafos,
   });
 
   TranscribeState copyWith({
     TranscribeStatus? status,
     Transcription? transcription,
+    Transcription? realtextComoTranscription,
+    List<ComparacionSegmento>? comparacion,
+    AlignmentMFAData? textoEscritoAlineado,
     Data? extradata,
     String? melSpectrogramBase64,
     List<List<double>>? melSpectrogramData,
@@ -51,10 +57,15 @@ class TranscribeState extends Equatable {
     List<String>? logs_mfa,
     bool? editMode,
     String? errorMessage,
+    List<WordWithSpans>? wordsWithSpans,
+    String? textoRealformadoparrafos
   }) {
     return TranscribeState(
       status: status ?? this.status,
       transcription: transcription ?? this.transcription,
+      realtextComoTranscription: realtextComoTranscription ?? this.realtextComoTranscription,
+      comparacion: comparacion ?? this.comparacion,
+      textoEscritoAlineado: textoEscritoAlineado ?? this.textoEscritoAlineado,
       extradata: extradata ?? this.extradata,
       melSpectrogramBase64: melSpectrogramBase64 ?? this.melSpectrogramBase64,
       melSpectrogramData: melSpectrogramData ?? this.melSpectrogramData,
@@ -63,6 +74,8 @@ class TranscribeState extends Equatable {
       logs_mfa: logs_mfa ?? this.logs_mfa,
       editMode: editMode ?? this.editMode,
       errorMessage: errorMessage ?? this.errorMessage,
+      wordsWithSpans: wordsWithSpans ?? this.wordsWithSpans,
+      textoRealformadoparrafos: textoRealformadoparrafos ?? this.textoRealformadoparrafos
     );
   }
 
@@ -70,11 +83,16 @@ class TranscribeState extends Equatable {
   List<Object?> get props => [
     status,
     transcription,
+    realtextComoTranscription,
+    comparacion,
+    textoEscritoAlineado,
     extradata,
     melSpectrogramBase64,
     waveformImageBase64,
     logs_mfa,
     editMode,
     errorMessage,
+    wordsWithSpans,
+    textoRealformadoparrafos
   ];
 }

@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:transcriber_whisper/models/comparation_model.dart';
 import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:transcriber_whisper/transcribe_state.dart';
 import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
+import 'package:transcriber_whisper/widgets/comparation_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
+import 'package:transcriber_whisper/widgets/simpleWordsWidget.dart';
+import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
+import 'package:transcriber_whisper/widgets/tex_display_widget.dart';
+import 'package:transcriber_whisper/widgets/tex_display_widget2.dart';
+import 'package:transcriber_whisper/widgets/tex_display_widget2Copy.dart';
 
 class EUTextPage extends StatefulWidget {
   const EUTextPage({super.key});
@@ -21,6 +28,7 @@ class _EUTextPageState extends State<EUTextPage> {
   void initState() {
     super.initState();
     getIt<TranscribeCubit>().useMockTranscriptionEU();
+    //getIt<TranscribeCubit>().loadAlignmentMFAData();
   }
 
   @override
@@ -59,63 +67,89 @@ class _EUTextPageState extends State<EUTextPage> {
                       ],
                     ),*/
                     // interfaz grafica principal
-                    state.transcription != null
-                        ? Expanded(
-                          child: Column(
-                            children: [
-                              AudioPlayerWidget(),
-                              //if (state.waveformImageBase64 != null) Image.memory(base64Decode(state.waveformImageBase64!), width: 500, height: 100),
-                              //if (state.melSpectrogramBase64 != null) Image.memory(base64Decode(state.melSpectrogramBase64!), width: 500, height: 100),
-                              /*SingleChildScrollView(
-                                controller: _scrollController,
-                                scrollDirection: Axis.horizontal,
-                                child: SlidingText(
-                                  transcription: state.transcription!,
-                                  audioPosition: state.extradata!.audioPosition,
-                                  currentWordIndex: state.extradata!.currentWordIndex,
-                                  waveformImageBase64: state.waveformImageBase64,
-                                  scrollController: _scrollController,
-                                  onWordTap: (index) {
-                                    getIt<TranscribeCubit>().forceCurrentWord(index);
-                                  },
-                                ),
-                              ),*/
-                              Expanded(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /*Expanded(
-                                      child: VerticalTranscription(
-                                        transcription: state.transcription!,
-                                        audioPosition: state.extradata!.audioPosition,
-                                        currentWordIndex: state.extradata!.currentWordIndex,
-                                        onSeek: (duration, index) {
-                                          getIt<TranscribeCubit>().forceCurrentWord(index);
-                                        },
-                                        autoScrollEnabled: true,
-                                        onAutoScrollChanged: (value) {
-                                          getIt<TranscribeCubit>().setAutoScroll(value);
-                                        },
-                                        onWordTap: (int) {},
-                                      ),
-                                    ),*/
-                                    Expanded(
-                                      child: SelectableRichText(
-                                        currentWordIndex: state.extradata?.currentWordIndex ?? -1,
-                                        onWordTap: (index) {
-                                          getIt<TranscribeCubit>().forceCurrentWord(index);
-                                        },
-                                        transcription: state.transcription!,
-                                        audioPosition: state.extradata!.audioPosition,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                    if (state.transcription != null)
+                      Expanded(
+                        child: Column(
+                          children: [
+                            AudioPlayerWidget(),
+                            //SimpleWordsWidget(transcription:  state.transcription!,),
+                            /*SingleChildScrollView(
+                              controller: _scrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: ComparacionHorizontalWidget(
+                                comparacion: getIt<TranscribeCubit>().compararSegmentos(state.transcription!.segments, state.transcription!.realsegments!),
                               ),
-                            ],
-                          ),
-                        )
-                        : Container(),
+                            ),*/
+                            SingleChildScrollView(
+                              controller: _scrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: SlidingText(
+                                transcription: state.transcription!,
+                                audioPosition: state.extradata!.audioPosition,
+                                currentWordIndex: state.extradata!.currentWordIndex,
+                                waveformImageBase64: state.waveformImageBase64,
+                                scrollController: _scrollController,
+                                onWordTap: (index) {
+                                  getIt<TranscribeCubit>().forceCurrentWord(index);
+                                },
+                              ),
+                            ),
+                            TextDisplayWidget2(
+                              transcription: state.transcription!,
+                              comparacionlist: state.comparacion!,
+                              //textoEscritoAlineado: state.textoEscritoAlineado,
+                              audioPosition: state.extradata!.audioPosition,
+                              currentWordIndex: state.extradata!.currentWordIndex,
+                              onSeek: (Duration d, int index) {
+                                getIt<TranscribeCubit>().forceCurrentWord(index);
+                              },
+                              onWordTap: (int index) {
+                                getIt<TranscribeCubit>().forceCurrentWord(index);
+                              },
+                            ),
+                            /**/
+                            /*SingleChildScrollView(
+                              controller: _scrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: SlidingText(
+                                transcription: state.transcription!,
+                                audioPosition: state.extradata!.audioPosition,
+                                currentWordIndex: state.extradata!.currentWordIndex,
+                                waveformImageBase64: state.waveformImageBase64,
+                                scrollController: _scrollController,
+                                onWordTap: (index) {
+                                  getIt<TranscribeCubit>().forceCurrentWord(index);
+                                },
+                              ),
+                            ),*/
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  SelectableRichText(
+                                    currentWordIndex: state.extradata?.currentWordIndex ?? -1,
+                                    onWordTap: (index) {
+                                      getIt<TranscribeCubit>().forceCurrentWord(index);
+                                    },
+                                    transcription: state.realtextComoTranscription!,
+                                    audioPosition: state.extradata!.audioPosition,
+                                  ),
+
+                                  SelectableRichText(
+                                    currentWordIndex: state.extradata?.currentWordIndex ?? -1,
+                                    onWordTap: (index) {
+                                      getIt<TranscribeCubit>().forceCurrentWord(index);
+                                    },
+                                    transcription: state.transcription!,
+                                    audioPosition: state.extradata!.audioPosition,
+                                  ),
+                                ],
+                              ),
+                            ) /**/,
+                          ],
+                        ),
+                      )
+                    else
+                      Container(),
                   ],
                 ),
               );

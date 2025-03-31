@@ -1,4 +1,4 @@
-ITSAS 
+ITSAS
 IZARRAK
 
 Bazen
@@ -73,11 +73,13 @@ lanpetuta
 zirudien
 .
 
-—Zertan
+—
+Zertan
 ari
 zara
 ?
-—galdetu
+—
+galdetu
 zion
 gizonak
 .

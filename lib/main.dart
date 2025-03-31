@@ -7,6 +7,8 @@ import 'package:transcriber_whisper/transcribe_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 import 'es_page.dart';
+import 'eu_text_page2.dart';
+import 'otradiff_page.dart';
 
 final getIt = GetIt.instance;
 
@@ -26,7 +28,8 @@ class MainApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         routes: {
           '/': (context) => const HomePage(), // Ruta principal
-          '/EUTextPage': (context) => const EUTextPage(),
+          '/testCompare':(context) => OtraDiffPage(title: '',),
+          '/EUTextPage': (context) => const EUTextPage2(),
           '/EUPage': (context) => const EUPage(),
           '/ESPage': (context) => const ESPage(),
         },
