@@ -4,8 +4,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 
 class VerticalTranscription extends TranscriptionWidget {
@@ -58,7 +58,7 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.transsegments.isEmpty) return;
+    if (widget.currentWordIndex == -1 || widget.transcription.transcribedSegments.isEmpty) return;
     _itemScrollController.scrollTo(
       index: widget.currentWordIndex,
       duration: const Duration(milliseconds: 300),
@@ -69,7 +69,7 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
         return Column(
           children: [
@@ -89,9 +89,9 @@ class _VerticalTranscriptionState extends TranscriptionWidgetState<VerticalTrans
               child: ScrollablePositionedList.builder(
                 itemScrollController: _itemScrollController,
                 itemPositionsListener: _itemPositionsListener,
-                itemCount: widget.transcription.transsegments.length,
+                itemCount: widget.transcription.transcribedSegments.length,
                 itemBuilder: (context, index) {
-                  final wordData = widget.transcription.transsegments[index];
+                  final wordData = widget.transcription.transcribedSegments[index];
                   final isCurrentWord = index == widget.currentWordIndex;
                   final startMillis = (wordData.start * 1000).toInt();
                   final endMillis = (wordData.end * 1000).toInt();

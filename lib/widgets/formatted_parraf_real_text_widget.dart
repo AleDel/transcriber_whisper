@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
 import 'package:get_it/get_it.dart';
 
@@ -45,11 +45,11 @@ class _FormattedTextWidgetState extends TranscriptionWidgetState<FormattedTextWi
       return Colors.yellow;
     }
     final bool isSelected = _isWordSelected(associatedWordIndex);
-    final state = context.read<TranscribeCubit>().state;
-    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.transsegments.length) {
+    final state = context.read<TranscriptionCubit>().state;
+    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.transcribedSegments.length) {
       return isSelected ? Colors.grey.withOpacity(0.5) : null;
     }
-    final List<String> tags = state.transcription!.transsegments[associatedWordIndex].tags;
+    final List<String> tags = state.transcription!.transcribedSegments[associatedWordIndex].tags;
     if (tags.isNotEmpty) {
       return getMixedTagColor(tags);
     }
@@ -105,13 +105,13 @@ class _FormattedTextWidgetState extends TranscriptionWidgetState<FormattedTextWi
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
         // Asegúrate de que el texto formateado esté disponible
         if (state.textoRealformadoparrafos == null || state.textoRealformadoparrafos!.isEmpty) {
           return const Center(child: Text('No hay texto para mostrar'));
         }
-        if (state.transcription == null || state.transcription!.transsegments.isEmpty) {
+        if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) {
           return const Center(child: Text('No hay transcripción para mostrar'));
         }
         final formattedText = state.textoRealformadoparrafos!;

@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 import 'package:get_it/get_it.dart';
 
@@ -39,9 +39,9 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
   void _calculateWordStartPositions() {
     _wordStartPositions.clear();
     int currentPosition = 0;
-    for (int i = 0; i < widget.transcription.transsegments.length; i++) {
+    for (int i = 0; i < widget.transcription.transcribedSegments.length; i++) {
       _wordStartPositions.add(currentPosition);
-      currentPosition += widget.transcription.transsegments[i].word.length + 1; // +1 for the space
+      currentPosition += widget.transcription.transcribedSegments[i].word.length + 1; // +1 for the space
     }
   }
 
@@ -80,16 +80,16 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
       return Colors.yellow;
     }
     final bool isSelected = _isWordSelected(index);
-    final bool hasTags = widget.transcription.transsegments[index].tags.isNotEmpty;
+    final bool hasTags = widget.transcription.transcribedSegments[index].tags.isNotEmpty;
 
     if (isSelected && hasTags) {
-      final Color tagColor = getMixedTagColor(widget.transcription.transsegments[index].tags);
+      final Color tagColor = getMixedTagColor(widget.transcription.transcribedSegments[index].tags);
       final Color selectionColor = Colors.grey.withOpacity(0.5);
       return mixMultipleColors([tagColor, selectionColor]);
     } else if (isSelected) {
       return Colors.grey.withOpacity(0.5);
     } else if (hasTags) {
-      return getMixedTagColor(widget.transcription.transsegments[index].tags);
+      return getMixedTagColor(widget.transcription.transcribedSegments[index].tags);
     }
 
     return null;
@@ -114,13 +114,13 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
         _internalPlayAndStopWordOnSelect = state.extradata!.playAndStopWordOnSelect;
         //_calculateWordStartPositions();
         List<InlineSpan> textSpans = [];
-        for (int i = 0; i < widget.transcription.transsegments.length; i++) {
-          final segment = widget.transcription.transsegments[i];
+        for (int i = 0; i < widget.transcription.transcribedSegments.length; i++) {
+          final segment = widget.transcription.transcribedSegments[i];
           String wordToDisplay = segment.word;
           TextStyle? wordStyle = TextStyle(backgroundColor: _getWordBackgroundColor(i));
 
@@ -129,7 +129,7 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
             wordStyle = wordStyle.copyWith(color: Colors.blue); // Resaltar palabras asociadas
           }
           textSpans.add(TextSpan(text: wordToDisplay, style: wordStyle));
-          if (i < widget.transcription.transsegments.length - 1) {
+          if (i < widget.transcription.transcribedSegments.length - 1) {
             textSpans.add(const TextSpan(text: " "));
           }
         }
@@ -160,7 +160,7 @@ class _SelectableRichTextState extends TranscriptionWidgetState<SelectableRichTe
                       final localPosition = renderObject.globalToLocal(details.globalPosition);
                       final int wordIndex = _findWordIndexFromOffset(localPosition);
                       if (wordIndex != -1) {
-                        final String word = widget.transcription.transsegments[wordIndex].word;
+                        final String word = widget.transcription.transcribedSegments[wordIndex].word;
                         print("Clicked word: '$word' - Index: $wordIndex");
                         widget.onWordTap(wordIndex);
                       }

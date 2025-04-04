@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
 import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
@@ -22,7 +22,7 @@ class _EUPageState extends State<EUPage> {
   @override
   void initState() {
     super.initState();
-    getIt<TranscribeCubit>().useMockTranscriptionEU();
+    getIt<TranscriptionCubit>().useMockTranscriptionEU();
   }
 
   @override
@@ -37,15 +37,15 @@ class _EUPageState extends State<EUPage> {
       appBar: AppBar(title: const Text('ITSAS IZARRAK')),
       body: Stack(
         children: [
-          BlocBuilder<TranscribeCubit, TranscribeState>(
+          BlocBuilder<TranscriptionCubit, TranscriptionState>(
             builder: (context, state) {
-              if (state.status == TranscribeStatus.error) {
+              if (state.status == TranscriptionStatus.error) {
                 return const Center(child: Text('Error al transcribir el audio'));
               }
-              if (state.status == TranscribeStatus.noserver) {
+              if (state.status == TranscriptionStatus.noserver) {
                 return const Center(child: Text('No se pudo conectar con el servidor'));
               }
-              if (state.status == TranscribeStatus.loading) {
+              if (state.status == TranscriptionStatus.loading) {
                 return Center(child: CircularProgressIndicator());
               }
               return Center(
@@ -78,7 +78,7 @@ class _EUPageState extends State<EUPage> {
                                   waveformImageBase64: state.waveformImageBase64,
                                   scrollController: _scrollController,
                                   onWordTap: (index) {
-                                    getIt<TranscribeCubit>().forceCurrentWord(index);
+                                    getIt<TranscriptionCubit>().forceCurrentWord(index);
                                   },
                                 ),
                               ),
@@ -92,11 +92,11 @@ class _EUPageState extends State<EUPage> {
                                         audioPosition: state.extradata!.audioPosition,
                                         currentWordIndex: state.extradata!.currentWordIndex,
                                         onSeek: (duration, index) {
-                                          getIt<TranscribeCubit>().forceCurrentWord(index);
+                                          getIt<TranscriptionCubit>().forceCurrentWord(index);
                                         },
                                         autoScrollEnabled: true,
                                         onAutoScrollChanged: (value) {
-                                          getIt<TranscribeCubit>().setAutoScroll(value);
+                                          getIt<TranscriptionCubit>().setAutoScroll(value);
                                         },
                                         onWordTap: (int) {},
                                       ),
@@ -105,7 +105,7 @@ class _EUPageState extends State<EUPage> {
                                       child: SelectableRichText(
                                         currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                                         onWordTap: (index) {
-                                          getIt<TranscribeCubit>().forceCurrentWord(index);
+                                          getIt<TranscriptionCubit>().forceCurrentWord(index);
                                         },
                                         transcription: state.transcription!,
                                         audioPosition: state.extradata!.audioPosition,

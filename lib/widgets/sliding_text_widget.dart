@@ -3,13 +3,13 @@ import 'dart:html' as html; // Importa la librería dart:html
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:transcriber_whisper/transcription_widget_abstract.dart';
 
-import '../transcribe_state.dart';
+import '../transcription_state.dart';
 
 class SlidingText extends TranscriptionWidget {
   final String? waveformImageBase64;
@@ -61,17 +61,17 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.transsegments.isEmpty || !widget.scrollController.hasClients) {
+    if (widget.currentWordIndex == -1 || widget.transcription.transcribedSegments.isEmpty || !widget.scrollController.hasClients) {
       return;
     }
     if (!widget.scrollController.hasClients) return; // Comprobación adicional
 
     final index = widget.currentWordIndex;
-    final totalDuration = widget.transcription.transsegments.last.end;
+    final totalDuration = widget.transcription.transcribedSegments.last.end;
     final totalTextWidth = (totalDuration / 1) * zoom;
 
-    final currentWordStart = widget.transcription.transsegments[index].start;
-    final currentWordEnd = widget.transcription.transsegments[index].end;
+    final currentWordStart = widget.transcription.transcribedSegments[index].start;
+    final currentWordEnd = widget.transcription.transcribedSegments[index].end;
     final currentWordPosition = (currentWordStart / totalDuration) * totalTextWidth;
     final currentWordWidth = ((currentWordEnd - currentWordStart) / totalDuration) * totalTextWidth;
     final currentWordCenter = currentWordPosition + (currentWordWidth / 2);
@@ -84,13 +84,13 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.transcription.transsegments.isEmpty) {
+    if (widget.transcription.transcribedSegments.isEmpty) {
       return Container();
     }
 
-    double totalDuration = widget.transcription.transsegments.last.end;
+    double totalDuration = widget.transcription.transcribedSegments.last.end;
 
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       buildWhen: (previous, current) => previous.transcription != current.transcription || previous.editMode != current.editMode,
       builder: (context, state) {
         return LayoutBuilder(
@@ -129,7 +129,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                       ),
 
                       // Palabras
-                      ...widget.transcription.transsegments.map((wordData) {
+                      ...widget.transcription.transcribedSegments.map((wordData) {
                         double wordStart = wordData.start;
                         double wordEnd = wordData.end;
                         double wordPosition = (wordStart / totalDuration) * totalTextWidth;
@@ -146,15 +146,15 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                             onPointerDown: (event) {
                               if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
                                 // Clic secundario (clic derecho)
-                                showContextMenu(event.position, wordIndexes: [widget.transcription.transsegments.indexOf(wordData)]);
+                                showContextMenu(event.position, wordIndexes: [widget.transcription.transcribedSegments.indexOf(wordData)]);
                               }
                             },
                             child: GestureDetector(
                               onTap: () {
-                                widget.onWordTap(widget.transcription.transsegments.indexOf(wordData));
+                                widget.onWordTap(widget.transcription.transcribedSegments.indexOf(wordData));
                               },
                               onLongPressStart: (details) {
-                                showContextMenu(details.globalPosition, wordIndexes: [widget.transcription.transsegments.indexOf(wordData)]);
+                                showContextMenu(details.globalPosition, wordIndexes: [widget.transcription.transcribedSegments.indexOf(wordData)]);
                               },
                               child: Column(
                                 children: [
@@ -167,7 +167,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                                         wordData.word,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: widget.transcription.transsegments.indexOf(wordData) == widget.currentWordIndex ? Colors.blue : Colors.black,
+                                          color: widget.transcription.transcribedSegments.indexOf(wordData) == widget.currentWordIndex ? Colors.blue : Colors.black,
                                         ),
                                         textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,

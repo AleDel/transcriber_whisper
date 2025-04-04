@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/widgets/selectable_pretty_diff_plain_text.dart';
 import 'package:transcriber_whisper/widgets/selectable_pretty_diff_text.dart';
 import 'package:transcriber_whisper/widgets/word_comparison_widget.dart';
@@ -27,7 +27,7 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
 
   @override
   void initState() {
-    getIt<TranscribeCubit>().useMockTranscriptionEU();
+    getIt<TranscriptionCubit>().useMockTranscriptionEU();
 
     _transcriptionTextEditingController = TextEditingController();
     _newTextEditingController = TextEditingController();
@@ -44,7 +44,7 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: BlocBuilder<TranscribeCubit, TranscribeState>(
+      body: BlocBuilder<TranscriptionCubit, TranscriptionState>(
         builder: (context, state) {
           // Check if transcription and listWordsTrascription are not null
           if (state.transcription != null && state.transcription!.listWordsTrascription != null) {

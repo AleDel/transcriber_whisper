@@ -12,9 +12,9 @@ class SimpleWordsWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Palabras del texto escrito (realsegments)
-        if (transcription.realsegments != null)
+        if (transcription.realTextSegments != null)
           Wrap(
-            children: transcription.realsegments!.map((segment) {
+            children: transcription.realTextSegments!.map((segment) {
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
@@ -27,7 +27,7 @@ class SimpleWordsWidget extends StatelessWidget {
         const SizedBox(height: 20), // Espacio entre las filas
         // Palabras de la transcripción (segments)
         Wrap(
-          children: transcription.transsegments.map((segment) {
+          children: transcription.transcribedSegments.map((segment) {
             return Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(

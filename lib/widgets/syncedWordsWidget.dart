@@ -23,10 +23,10 @@ class _SyncedWordsWidgetState extends State<SyncedWordsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.transcription.realsegments != null)
+        if (widget.transcription.realTextSegments != null)
           Wrap(
-            children: widget.transcription.realsegments!.map((realSegment) {
-              final matchingSegment = widget.transcription.transsegments.firstWhere(
+            children: widget.transcription.realTextSegments!.map((realSegment) {
+              final matchingSegment = widget.transcription.transcribedSegments.firstWhere(
                     (segment) =>
                 widget.currentTime >= segment.start &&
                     widget.currentTime <= segment.end,

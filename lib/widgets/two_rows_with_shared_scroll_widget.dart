@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 
 class TwoRowsWithSharedScrollWidget extends StatefulWidget {
   const TwoRowsWithSharedScrollWidget({Key? key}) : super(key: key);
@@ -36,9 +36,9 @@ class _TwoRowsWithSharedScrollWidgetState extends State<TwoRowsWithSharedScrollW
   Widget build(BuildContext context) {
     return ScrollConfiguration(
       behavior: MyCustomScrollBehavior(),
-      child: BlocBuilder<TranscribeCubit, TranscribeState>(
+      child: BlocBuilder<TranscriptionCubit, TranscriptionState>(
         builder: (context, state) {
-          if (state.status == TranscribeStatus.loading) {
+          if (state.status == TranscriptionStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.wordsWithSpans.isEmpty || state.transcription == null) {
@@ -61,7 +61,7 @@ class _TwoRowsWithSharedScrollWidgetState extends State<TwoRowsWithSharedScrollW
                   // Row for transcription.realsegments (real words)
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: state.transcription!.realsegments!.map((segment) => segment.word).toList().map((word) => _buildRawWordWidget(word)).toList(),
+                    children: state.transcription!.realTextSegments!.map((segment) => segment.word).toList().map((word) => _buildRawWordWidget(word)).toList(),
                   ),
                   /*Row(
                     mainAxisSize: MainAxisSize.min,

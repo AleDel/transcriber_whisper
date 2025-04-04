@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 
 class DiffRowsWidget extends StatelessWidget {
   const DiffRowsWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        if (state.status == TranscribeStatus.loading) {
+        if (state.status == TranscriptionStatus.loading) {
           return const Center(child: CircularProgressIndicator());
         }
         if (state.wordsWithSpans.isEmpty || state.transcription == null) {
@@ -24,7 +24,7 @@ class DiffRowsWidget extends StatelessWidget {
             Wrap(
               alignment: WrapAlignment.center,
               children:
-              state.transcription!.realsegments!.asMap().entries.map((entry) {
+              state.transcription!.realTextSegments!.asMap().entries.map((entry) {
                     final int index = entry.key;
                     final segment = entry.value;
                     final correspondingWord = state.wordsWithSpans.firstWhere(
@@ -51,7 +51,7 @@ class DiffRowsWidget extends StatelessWidget {
                   state.wordsWithSpans
                       .where(
                         (wordWithSpans) =>
-                            state.transcription!.realsegments!.indexWhere(
+                            state.transcription!.realTextSegments!.indexWhere(
                               (segment) =>
                                   segment.word.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]'), '') ==
                                   wordWithSpans.word.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]'), ''),

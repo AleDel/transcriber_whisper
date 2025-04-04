@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
 
-import '../transcribe_state.dart';
+import '../transcription_state.dart';
 
 class AudioPlayerWidget extends StatelessWidget {
   const AudioPlayerWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        final cubit = context.read<TranscribeCubit>();
+        final cubit = context.read<TranscriptionCubit>();
         return Column(
           children: [
             Row(
@@ -19,12 +19,12 @@ class AudioPlayerWidget extends StatelessWidget {
               children: [
                 IconButton(
                   icon: Icon(
-                    state.status == TranscribeStatus.isPlayerplaying
+                    state.status == TranscriptionStatus.isPlayerplaying
                         ? Icons.pause
                         : Icons.play_arrow,
                   ),
                   onPressed: () {
-                    if (state.status == TranscribeStatus.isPlayerplaying) {
+                    if (state.status == TranscriptionStatus.isPlayerplaying) {
                       cubit.audioPlayer.pause();
                     } else {
                       cubit.audioPlayer.resume();

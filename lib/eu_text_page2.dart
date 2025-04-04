@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
+import 'package:transcriber_whisper/widgets/associated_segments_table.dart';
 import 'package:transcriber_whisper/widgets/associated_segments_widget.dart';
 import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/formatted_parraf_real_text_widget.dart';
 import 'package:transcriber_whisper/widgets/formatted_parraf_real_text_widget_Normal.dart';
-import 'package:transcriber_whisper/widgets/highlighted_real_text_widget.dart';
+import 'package:transcriber_whisper/widgets/highlighted_real_text_widget.dart' hide TranscriptionState;
 import 'package:transcriber_whisper/widgets/hybrid_text_widget.dart';
 import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
 import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
@@ -26,15 +27,15 @@ class _EUTextPage2State extends State<EUTextPage2> {
   GetIt getIt = GetIt.instance;
 
   late final TextEditingController _transcriptionTextEditingController;
-  late final TextEditingController _newTextEditingController;
+  //late final TextEditingController _newTextEditingController;
 
   @override
   void initState() {
     super.initState();
-    getIt<TranscribeCubit>().useMockTranscriptionEU();
+    getIt<TranscriptionCubit>().useMockTranscriptionEU();
     //getIt<TranscribeCubit>().loadAlignmentMFAData();
     _transcriptionTextEditingController = TextEditingController();
-    _newTextEditingController = TextEditingController();
+    //_newTextEditingController = TextEditingController();
   }
 
   @override
@@ -51,22 +52,20 @@ class _EUTextPage2State extends State<EUTextPage2> {
       appBar: AppBar(title: const Text('ITSAS IZARRAK*')),
       body: Stack(
         children: [
-          BlocBuilder<TranscribeCubit, TranscribeState>(
+          BlocBuilder<TranscriptionCubit, TranscriptionState>(
             builder: (context, state) {
-              if (state.status == TranscribeStatus.error) {
+              if (state.status == TranscriptionStatus.error) {
                 return const Center(child: Text('Error al transcribir el audio'));
               }
-              if (state.status == TranscribeStatus.noserver) {
+              if (state.status == TranscriptionStatus.noserver) {
                 return const Center(child: Text('No se pudo conectar con el servidor'));
               }
-              if (state.status == TranscribeStatus.loading) {
+              if (state.status == TranscriptionStatus.loading) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final listaword_transcription = state.transcription!.transsegments.map((e) => e.word).toList();
-              final listaword_real = state.transcription!.realsegments!.map((e) => e.word).toList();
 
-              _transcriptionTextEditingController.text = state.transcription!.fulltext!; //state.transcription!.listWordsTrascription!.join(" ").trim();
-              _newTextEditingController.text = state.transcription!.listWordsTexto!.join(" ").trim();
+              _transcriptionTextEditingController.text = state.transcription!.fullTextTranscription!; //state.transcription!.listWordsTrascription!.join(" ").trim();
+              //_newTextEditingController.text = state.transcription!.listWordsTexto!.join(" ").trim();
 
               return Center(
                 child: Column(
@@ -87,11 +86,11 @@ class _EUTextPage2State extends State<EUTextPage2> {
                                 waveformImageBase64: state.waveformImageBase64,
                                 scrollController: _scrollController,
                                 onWordTap: (index) {
-                                  getIt<TranscribeCubit>().forceCurrentWord(index);
+                                  getIt<TranscriptionCubit>().forceCurrentWord(index);
                                 },
                               ),
                             ),
-                            SingleChildScrollView(
+                            /*SingleChildScrollView(
                               controller: _scrollController2,
                               scrollDirection: Axis.horizontal,
                               child: HybridTextWidget(
@@ -104,10 +103,11 @@ class _EUTextPage2State extends State<EUTextPage2> {
                                   getIt<TranscribeCubit>().forceCurrentWord(index);
                                 },
                               ),
-                            ),
+                            ),*/
+
                             /*PrettyDiffText(
                               textAlign: TextAlign.center,
-                              oldText: state.transcription!.transsegments.map((e) => e.word).toList().join(" "),
+                              oldText: state.transcription!.transcriptionSegments.map((e) => e.word).toList().join(" "),
                               newText: state.transcription!.realsegments!.map((e) => e.word).toList().join(" "),
                               diffTimeout: 1.0,
                               diffEditCost: 4,
@@ -127,16 +127,16 @@ class _EUTextPage2State extends State<EUTextPage2> {
                               child: Row(
                                 children: [
                                   // Usamos Expanded para que FormattedTextWidget ocupe el espacio disponible
-                                  FormattedTextWidget(
+                                   /*FormattedTextWidget(
                                     currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                                     onWordTap: (index) {
                                       getIt<TranscribeCubit>().forceCurrentWord(index);
                                     },
                                     transcription: state.transcription!,
                                     audioPosition: state.extradata!.audioPosition,
-                                  ),
-                                  //FormattedTextNormalWidget(),
-                                  Expanded(
+                                  ),*/
+                                  FormattedTextNormalWidget(),
+                                  /*Expanded(
                                     child: HighlightedRealTextWidget(
                                       currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                                       onWordTap: (index) {
@@ -149,7 +149,7 @@ class _EUTextPage2State extends State<EUTextPage2> {
                                       onShowOnlyDifferentWordsChanged: (bool value) {},
                                       onHighlightDifferencesChanged: (bool value) {},
                                     ),
-                                  ),
+                                  ),*/
                                   // Usamos Expanded para que SelectableRichText ocupe el espacio disponible
                                   Expanded(
                                     child: Column(
@@ -176,10 +176,10 @@ class _EUTextPage2State extends State<EUTextPage2> {
                                             audioPosition: state.extradata!.audioPosition,
                                           ),
                                         ),*/
-                                        Expanded(child: AssociatedSegmentsWidget(alignedSegments: state.transcription!.alignedSegments!))
+                                        Expanded(child: AssociatedSegmentsWidget(alignedSegments: state.transcription!.alignedSegments!)),
                                       ],
                                     ),
-                                  ),
+                                  ) /**/,
                                 ],
                               ),
                             ),

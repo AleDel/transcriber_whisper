@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
 
 import '../models/segment.dart';
@@ -11,17 +11,17 @@ class FormattedTextWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TranscribeCubit, TranscribeState>(
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
         // Asegúrate de que el texto formateado esté disponible
         if (state.textoRealformadoparrafos == null || state.textoRealformadoparrafos!.isEmpty) {
           return const Center(child: Text('No hay texto para mostrar'));
         }
-        if (state.transcription == null || state.transcription!.transsegments.isEmpty) {
+        if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) {
           return const Center(child: Text('No hay transcripción para mostrar'));
         }
         final formattedText = state.textoRealformadoparrafos!;
-        final transsegments = state.transcription!.transsegments;
+        final transsegments = state.transcription!.transcribedSegments;
         // 1. Dividir el Texto Real en Párrafos
         final paragraphs = formattedText.split('\n\n');
 

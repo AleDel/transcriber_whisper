@@ -355,9 +355,12 @@ class Transcription {
   ///////////
   void associateWords() {
     print("associateWords - Inicio");
+    // Limpiar la lista de segmentos asociados
+    associatedSegments!.clear();
+    // Asociar las palabras que coinciden exactamente
     _associateExactMatches();
+    // Asociar las palabras que no coinciden exactamente
     _associateNonExactMatches();
-    _addUnassociatedRealWords();
     print("associateWords - Fin");
   }
 
@@ -548,18 +551,6 @@ class Transcription {
           info += "Al final del texto\n";
         }
       }
-      if (segment.associationType == "Eliminada") {
-        info += "  Posición en el audio: ";
-        if (segment.realWordBeforeEnd != null && segment.realWordAfterStart != null) {
-          info += "Entre ${segment.realWordBeforeEnd} y ${segment.realWordAfterStart}\n";
-        } else if (segment.realWordBeforeEnd != null) {
-          info += "Después de ${segment.realWordBeforeEnd}\n";
-        } else if (segment.realWordAfterStart != null) {
-          info += "Antes de ${segment.realWordAfterStart}\n";
-        } else {
-          info += "Sin contexto temporal\n";
-        }
-      }
       info += "----------------------------------\n";
       segmentNumber++; // Incrementar el contador de segmentos
     }
@@ -633,73 +624,6 @@ class Transcription {
     return realIndex;
   }
 
-  void _addUnassociatedRealWords() {
-    print("_addUnassociatedRealWords - Inicio");
-    // Recorrer las palabras reales
-    for (int realIndex = 0; realIndex < realTextSegments!.length; realIndex++) {
-      Segment realSegment = realTextSegments![realIndex];
-      // Verificar si la palabra real ya está asociada
-      bool alreadyAssociated = associatedSegments!.any((element) => element.realIndex == realIndex);
-      if (!alreadyAssociated) {
-        print("_addUnassociatedRealWords - Añadiendo palabra real no asociada: ${realSegment.word} en el indice $realIndex");
-        // Buscar la palabra asociada anterior
-        Segment? previousAssociatedSegment;
-        for (int i = realIndex - 1; i >= 0; i--) {
-          previousAssociatedSegment = associatedSegments!.firstWhere((element) => element.realIndex == i, orElse: () => Segment(start: 0, end: 0, word: "", probability: 0));
-          if (previousAssociatedSegment.associationType != "Eliminada") {
-            break;
-          }
-          previousAssociatedSegment = null;
-        }
-        // Buscar la palabra asociada posterior
-        Segment? nextAssociatedSegment;
-        for (int i = realIndex + 1; i < realTextSegments!.length; i++) {
-          nextAssociatedSegment = associatedSegments!.firstWhere((element) => element.realIndex == i, orElse: () => Segment(start: 0, end: 0, word: "", probability: 0));
-          if (nextAssociatedSegment.associationType != "Eliminada") {
-            break;
-          }
-          nextAssociatedSegment = null;
-        }
-        // Calcular el start y el end
-        double start = 0.0;
-        double end = 0.0;
-        if (previousAssociatedSegment != null) {
-          start = previousAssociatedSegment.end;
-        }
-        if (nextAssociatedSegment != null) {
-          end = nextAssociatedSegment.start;
-        } else {
-          end = start + 0.5; // Valor arbitrario si no hay siguiente
-        }
-        // Crear un nuevo segmento para la palabra real no asociada
-        Segment associatedSegment = Segment(
-          start: start,
-          end: end,
-          word: realSegment.word,
-          probability: 0.0, // Probabilidad baja por defecto
-          realWord: realSegment.word,
-          wordAssociation: null,
-          transcribedWords: [],
-          transcribedWordsProbabilities: [],
-          associationType: "Eliminada",
-          levenshteinDistance: 0,
-          realIndex: realIndex,
-          transcribedIndex: null,
-          transcribedOrder: null,
-          insertionOrder: null,
-          realOrder: realIndex,
-          realWordBeforeEnd: previousAssociatedSegment?.end, // Nuevo
-          realWordAfterStart: nextAssociatedSegment?.start, // Nuevo
-        );
-        // Añadir el segmento a associatedSegments
-        associatedSegments!.add(associatedSegment);
-      } else {
-        print("_addUnassociatedRealWords - Ya asociado: ${realSegment.word} en el indice $realIndex");
-      }
-    }
-    print("_addUnassociatedRealWords - Fin");
-  }
-
   void addUnassociatedInsertions() {
     print("addUnassociatedInsertions - Inicio");
     List<Segment> segmentsToAdd = [];
@@ -738,7 +662,7 @@ class Transcription {
         } else if (realWordBeforeIndex != null) {
           realOrder = realWordBeforeIndex + 1;
         } else if (realWordAfterIndex != null) {
-          realOrder = realWordAfterIndex;
+          realOrder = realWordAfterIndex - 1;
         } else {
           realOrder = associatedSegments!.length; // Si no hay contexto, al final
         }

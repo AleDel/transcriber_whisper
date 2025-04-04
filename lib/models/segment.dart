@@ -4,7 +4,7 @@ import 'package:transcriber_whisper/models/word_with_spans.dart';
 class Segment {
   final double start;
   final double end;
-  final String word;
+  final String word; // palabra de la transcripcion
   final double probability;
   List<String> tags;
   WordWithSpans? wordWithSpans;
@@ -12,8 +12,17 @@ class Segment {
   String? realWord;
   List<String>? transcribedWords;
   List<double>? transcribedWordsProbabilities;
-  String? associationType; // Nueva propiedad
-  int? levenshteinDistance; // Nueva propiedad
+  String? associationType;
+  int? levenshteinDistance;
+  int? realIndex;
+  int? transcribedIndex;
+  int? transcribedOrder;
+  int? insertionOrder;
+  int? realOrder; // Nuevo: Orden en el texto real (para inserciones)
+  int? realWordBeforeIndex; // Nuevo: Índice de la palabra real antes de la inserción
+  int? realWordAfterIndex; // Nuevo: Índice de la palabra real después de la inserción
+  double? realWordBeforeEnd; // Nuevo: Fin de la palabra real antes de la eliminacion
+  double? realWordAfterStart; // Nuevo: Inicio de la palabra real despues de la eliminacion
 
   Segment({
     required this.start,
@@ -26,8 +35,17 @@ class Segment {
     this.realWord,
     this.transcribedWords,
     this.transcribedWordsProbabilities,
-    this.associationType, // Inicializar la nueva propiedad
-    this.levenshteinDistance, // Inicializar la nueva propiedad
+    this.associationType,
+    this.levenshteinDistance,
+    this.realIndex,
+    this.transcribedIndex,
+    this.transcribedOrder,
+    this.insertionOrder,
+    this.realOrder, // Nuevo
+    this.realWordBeforeIndex, // Nuevo
+    this.realWordAfterIndex, // Nuevo
+    this.realWordBeforeEnd, // Nuevo
+    this.realWordAfterStart, // Nuevo
   }) : tags = tags ?? []; // Initialize tags as an empty list if null
 
   factory Segment.fromMap(Map<String, dynamic> map) {
@@ -37,6 +55,11 @@ class Segment {
       word: map['word']?.replaceAll(RegExp(r'[^\w\s]'), '') ?? '',
       probability: map['probability']?.toDouble() ?? 0.0,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Segment{start: $start, end: $end, word: $word, probability: $probability, realWord: $realWord, wordAssociation: $wordAssociation, transcribedWords: $transcribedWords, transcribedWordsProbabilities: $transcribedWordsProbabilities, associationType: $associationType, levenshteinDistance: $levenshteinDistance, realIndex: $realIndex, transcribedIndex: $transcribedIndex, transcribedOrder: $transcribedOrder, insertionOrder: $insertionOrder, realOrder: $realOrder, realWordBeforeIndex: $realWordBeforeIndex, realWordAfterIndex: $realWordAfterIndex, realWordBeforeEnd: $realWordBeforeEnd, realWordAfterStart: $realWordAfterStart}';
   }
 
   Segment copyWith({
@@ -50,8 +73,17 @@ class Segment {
     String? realWord,
     List<String>? transcribedWords,
     List<double>? transcribedWordsProbabilities,
-    String? associationType, // Añadir la nueva propiedad
-    int? levenshteinDistance, // Añadir la nueva propiedad
+    String? associationType,
+    int? levenshteinDistance,
+    int? realIndex,
+    int? transcribedIndex,
+    int? transcribedOrder,
+    int? insertionOrder,
+    int? realOrder, // Nuevo
+    int? realWordBeforeIndex, // Nuevo
+    int? realWordAfterIndex, // Nuevo
+    double? realWordBeforeEnd, // Nuevo
+    double? realWordAfterStart, // Nuevo
   }) {
     return Segment(
       start: start ?? this.start,
@@ -64,8 +96,17 @@ class Segment {
       realWord: realWord ?? this.realWord,
       transcribedWords: transcribedWords ?? this.transcribedWords,
       transcribedWordsProbabilities: transcribedWordsProbabilities ?? this.transcribedWordsProbabilities,
-      associationType: associationType ?? this.associationType, // Asignar la nueva propiedad
-      levenshteinDistance: levenshteinDistance ?? this.levenshteinDistance, // Asignar la nueva propiedad
+      associationType: associationType ?? this.associationType,
+      levenshteinDistance: levenshteinDistance ?? this.levenshteinDistance,
+      realIndex: realIndex ?? this.realIndex,
+      transcribedIndex: transcribedIndex ?? this.transcribedIndex,
+      transcribedOrder: transcribedOrder ?? this.transcribedOrder,
+      insertionOrder: insertionOrder ?? this.insertionOrder,
+      realOrder: realOrder ?? this.realOrder, // Nuevo
+      realWordBeforeIndex: realWordBeforeIndex ?? this.realWordBeforeIndex, // Nuevo
+      realWordAfterIndex: realWordAfterIndex ?? this.realWordAfterIndex, // Nuevo
+      realWordBeforeEnd: realWordBeforeEnd ?? this.realWordBeforeEnd, // Nuevo
+      realWordAfterStart: realWordAfterStart ?? this.realWordAfterStart, // Nuevo
     );
   }
 }

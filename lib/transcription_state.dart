@@ -6,10 +6,10 @@ import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'models/comparation_model.dart';
 import 'models/word_with_spans.dart';
 
-enum TranscribeStatus { initial, loaded, loading, error, noserver, isPlayerplaying, isPlayerpause, isPlayerstopped, isPlayercompleted, isPlayerdisposed, success }
+enum TranscriptionStatus { initial, loaded, loading, error, noserver, isPlayerplaying, isPlayerpause, isPlayerstopped, isPlayercompleted, isPlayerdisposed, success }
 
-class TranscribeState extends Equatable {
-  final TranscribeStatus status;
+class TranscriptionState extends Equatable {
+  final TranscriptionStatus status;
   final Transcription? transcription;
   final Transcription? realtextComoTranscription;
   final List<ComparacionSegmento>? comparacion;
@@ -25,7 +25,7 @@ class TranscribeState extends Equatable {
   final List<WordWithSpans> wordsWithSpans;
   final String? textoRealformadoparrafos;
 
-  const TranscribeState({
+  const TranscriptionState({
     required this.status,
     this.transcription,
     this.realtextComoTranscription,
@@ -43,8 +43,8 @@ class TranscribeState extends Equatable {
     this.textoRealformadoparrafos,
   });
 
-  TranscribeState copyWith({
-    TranscribeStatus? status,
+  TranscriptionState copyWith({
+    TranscriptionStatus? status,
     Transcription? transcription,
     Transcription? realtextComoTranscription,
     List<ComparacionSegmento>? comparacion,
@@ -60,7 +60,7 @@ class TranscribeState extends Equatable {
     List<WordWithSpans>? wordsWithSpans,
     String? textoRealformadoparrafos
   }) {
-    return TranscribeState(
+    return TranscriptionState(
       status: status ?? this.status,
       transcription: transcription ?? this.transcription,
       realtextComoTranscription: realtextComoTranscription ?? this.realtextComoTranscription,

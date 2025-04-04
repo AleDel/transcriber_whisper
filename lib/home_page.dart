@@ -28,6 +28,8 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/EUTextPage'), child: const Text('ITSAS IZARRAK*')),
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/EUPage'), child: const Text('ITSAS IZARRAK')),
                 ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/ESPage'), child: const Text('LA TORTUGA KALI')),
+                ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/TrascribePage'), child: const Text('TrascribePage')),
+                ElevatedButton(onPressed: () async => Navigator.pushNamed(context, '/DemoPage'), child: const Text('DemoPage')),
               ],
             ),
           ],

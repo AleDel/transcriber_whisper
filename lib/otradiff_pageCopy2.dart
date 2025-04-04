@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/widgets/selectable_pretty_diff_plain_text.dart';
 import 'package:transcriber_whisper/widgets/word_comparison_widget.dart';
 import 'package:transcriber_whisper/widgets/selectable_pretty_diff_text.dart'; // Importa el nuevo widget

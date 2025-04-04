@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
-import 'package:transcriber_whisper/transcribe_state.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
+import 'package:transcriber_whisper/transcription_state.dart';
 import 'package:transcriber_whisper/widgets/diff_rows_widget.dart';
 import 'package:transcriber_whisper/widgets/formatted_words_widget.dart';
 import 'package:transcriber_whisper/widgets/selectable_pretty_diff_plain_text.dart';
@@ -34,7 +34,7 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
 
   @override
   void initState() {
-    getIt<TranscribeCubit>().useMockTranscriptionEU();
+    getIt<TranscriptionCubit>().useMockTranscriptionEU();
 
     _transcriptionTextEditingController = TextEditingController();
     _newTextEditingController = TextEditingController();
@@ -51,14 +51,14 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: BlocBuilder<TranscribeCubit, TranscribeState>(
+      body: BlocBuilder<TranscriptionCubit, TranscriptionState>(
         builder: (context, state) {
           List<FormattedWord> formattedWords = [];
           // Check if transcription and listWordsTrascription are not null
-          if (state.transcription != null && state.transcription!.listWordsTrascription != null) {
-            _transcriptionTextEditingController.text = state.transcription!.listWordsTrascription!.join(" ").trim();
-            _newTextEditingController.text = state.transcription!.listWordsTexto!.join(" ").trim();
-            //_oldTextEditingController.text = state.transcription!.listWordsTexto!.join(" ");
+          if (state.transcription != null && state.transcription!.transcribedWords != null) {
+            _transcriptionTextEditingController.text = state.transcription!.transcribedWords!.join(" ").trim();
+            _newTextEditingController.text = state.transcription!.realTextWords!.join(" ").trim();
+            //_oldTextEditingController.text = state.transcription!.realTextWords!.join(" ");
             //_newTextEditingController.text = state.transcription!.listWordsTrascription!.join(" ");
 
             final selectablePrettyDiffText = SelectablePrettyDiffPlaintText(
@@ -171,14 +171,14 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
                         ),
                       ),
                       // Aquí añadimos el WordComparisonWidget
-                      if (state.transcription != null && state.transcription!.listWordsTrascription != null && state.transcription!.listWordsTexto != null)
+                      if (state.transcription != null && state.transcription!.transcribedWords != null && state.transcription!.realTextWords != null)
                         WordComparisonWidget(
-                          text1Words: state.transcription!.listWordsTexto!,
-                          text2Words: state.transcription!.listWordsTrascription!,
+                          text1Words: state.transcription!.realTextWords!,
+                          text2Words: state.transcription!.transcribedWords!,
                           diffCleanupType: _diffCleanupType ?? DiffCleanupType.SEMANTIC,
                           diffTimeout: diffTimeoutToDouble(),
                           diffEditCost: editCostToDouble(),
-                          originalTextWords: state.transcription!.listWordsTexto!,
+                          originalTextWords: state.transcription!.realTextWords!,
                         ),
                       Padding(
                         padding: const EdgeInsets.only(top: 25.0),

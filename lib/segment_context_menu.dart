@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
 
 class SegmentContextMenu extends StatefulWidget {
   final List<String> availableTags;
@@ -90,9 +90,9 @@ class _SegmentContextMenuState extends State<SegmentContextMenu> {
                 }
               });
             },
-            activeColor: TranscribeCubit.availableTags[tag],
+            activeColor: TranscriptionCubit.availableTags[tag],
             checkColor: Colors.white,
-            tileColor: _selectedTags.contains(tag) ? TranscribeCubit.availableTags[tag]?.withOpacity(0.5) : null,
+            tileColor: _selectedTags.contains(tag) ? TranscriptionCubit.availableTags[tag]?.withOpacity(0.5) : null,
           );
         }).toList(),
       ],

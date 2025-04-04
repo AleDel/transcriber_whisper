@@ -9,8 +9,8 @@ import 'package:transcriber_whisper/models/transcription_model.dart';
 
 import '../../transcription_widget_abstract.dart';
 import '../models/segment.dart';
-import '../transcribe_cubit.dart';
-import '../transcribe_state.dart';
+import '../transcription_cubit.dart';
+import '../transcription_state.dart';
 import 'comparation_widget.dart';
 
 class TextDisplayWidget extends TranscriptionWidget {

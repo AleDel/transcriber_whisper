@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:transcriber_whisper/eu_page.dart';
 import 'package:transcriber_whisper/eu_text_page.dart';
 import 'package:transcriber_whisper/home_page.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:get_it/get_it.dart';
+import 'package:transcriber_whisper/transcribe_page.dart';
 
+import 'demo_page.dart';
 import 'es_page.dart';
 import 'eu_text_page2.dart';
 import 'otradiff_page.dart';
@@ -13,7 +15,7 @@ import 'otradiff_page.dart';
 final getIt = GetIt.instance;
 
 void main() {
-  getIt.registerSingleton<TranscribeCubit>(TranscribeCubit());
+  getIt.registerSingleton<TranscriptionCubit>(TranscriptionCubit());
   runApp(const MainApp());
 }
 
@@ -23,7 +25,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<TranscribeCubit>(),
+      create: (context) => getIt<TranscriptionCubit>(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         routes: {
@@ -32,6 +34,8 @@ class MainApp extends StatelessWidget {
           '/EUTextPage': (context) => const EUTextPage2(),
           '/EUPage': (context) => const EUPage(),
           '/ESPage': (context) => const ESPage(),
+          '/TrascribePage':(context)=>  TranscribePage(),
+          '/DemoPage':(context)=>  DemoPage(),
         },
       ),
     );

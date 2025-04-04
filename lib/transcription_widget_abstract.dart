@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/models/transcription_model.dart';
-import 'package:transcriber_whisper/transcribe_cubit.dart';
+import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:transcriber_whisper/widgets/segmentEditor_widget.dart';
 
 abstract class TranscriptionWidget extends StatefulWidget {
@@ -28,7 +28,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   final GetIt getIt = GetIt.instance;
 
   //
-  Map<String, Color> get _availableTags => TranscribeCubit.availableTags;
+  Map<String, Color> get _availableTags => TranscriptionCubit.availableTags;
   bool _tagSelected = false;
   List<int> _selectedIndexes = [];
   //
@@ -43,7 +43,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     setState(() {
       internalAutoScrollEnabled = value;
     });
-    getIt<TranscribeCubit>().setAutoScroll(value);
+    getIt<TranscriptionCubit>().setAutoScroll(value);
     if (widget.onAutoScrollChanged != null) {
       widget.onAutoScrollChanged!(value);
     }
@@ -59,11 +59,11 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return [];
     }
     List<String> tags = [];
-    final sessionCubit = getIt<TranscribeCubit>();
+    final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return [];
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.transsegments.length) {
-        tags.addAll(sessionCubit.state.transcription!.transsegments[i].tags);
+      if (i >= 0 && i < sessionCubit.state.transcription!.rawRealTextSegments!.length) {
+        tags.addAll(sessionCubit.state.transcription!.rawRealTextSegments![i].tags);
       }
     }
     return tags.toSet().toList();
@@ -128,14 +128,14 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
             onTap: () {
               if (_selectedIndexes.isNotEmpty) {
                 for (int index in _selectedIndexes) {
-                  getIt<TranscribeCubit>().deleteSegment(index);
+                  getIt<TranscriptionCubit>().deleteSegment(index);
                 }
               }
             },
           ),
         ..._availableTags.entries.map((entry) {
           final String tag = entry.key;
-          final String symbol = TranscribeCubit.tagToSymbol[tag] ?? tag;
+          final String symbol = TranscriptionCubit.tagToSymbol[tag] ?? tag;
           final Color color = entry.value;
           final bool isSelected = selectedTags.contains(tag);
           return PopupMenuItem<String>(
@@ -162,16 +162,16 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   }
 
   void _editSegment(BuildContext context, int index) {
-    final sessionCubit = getIt<TranscribeCubit>();
+    final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return;
-    final segment = sessionCubit.state.transcription!.transsegments[index];
+    final segment = sessionCubit.state.transcription!.rawRealTextSegments![index];
     showDialog(
       context: context,
       builder: (context) {
         return SegmentEditor(
           segment: segment,
           onSave: (newSegment) {
-            getIt<TranscribeCubit>().editSegment(newSegment);
+            getIt<TranscriptionCubit>().editSegment(newSegment);
           },
         );
       },
@@ -179,13 +179,13 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   }
 
   void _applyTagToSelection(String tag) {
-    final transcriberCubit = getIt<TranscribeCubit>();
+    final transcriberCubit = getIt<TranscriptionCubit>();
     if (transcriberCubit.state.transcription == null) return;
     if (_selectedIndexes.isEmpty) {
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < transcriberCubit.state.transcription!.transsegments.length) {
+      if (i >= 0 && i < transcriberCubit.state.transcription!.rawRealTextSegments!.length) {
         transcriberCubit.addTagToSegment(i, tag);
       }
     }
@@ -195,13 +195,13 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   }
 
   void _removeTagFromSelection(String tag) {
-    final sessionCubit = getIt<TranscribeCubit>();
+    final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return;
     if (_selectedIndexes.isEmpty) {
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.transsegments.length) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.rawRealTextSegments!.length) {
         sessionCubit.removeTagFromSegment(i, tag);
       }
     }
@@ -217,10 +217,10 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     }
 
     if (tags.length == 1) {
-      return TranscribeCubit.availableTags[tags.first] ?? Colors.transparent;
+      return TranscriptionCubit.availableTags[tags.first] ?? Colors.transparent;
     }
 
-    List<Color> tagColors = tags.map((tag) => TranscribeCubit.availableTags[tag] ?? Colors.transparent).toList();
+    List<Color> tagColors = tags.map((tag) => TranscriptionCubit.availableTags[tag] ?? Colors.transparent).toList();
     return mixMultipleColors(tagColors);
   }
 
