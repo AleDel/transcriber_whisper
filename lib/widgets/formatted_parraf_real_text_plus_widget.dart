@@ -43,12 +43,12 @@ class FormattedTextWidget extends StatelessWidget {
             // Buscar la correspondencia en el resultado de diff
             var wordWithSpan = transsegments.firstWhere(
               (element) => element.word.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '') == realWord.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), ''),
-              orElse: () => Segment(start: 0, end: 0, word: "", probability: 0),
+              orElse: () => Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none),
             );
             if (wordWithSpan.word.isEmpty) {
               wordWithSpan = transsegments.firstWhere(
                 (element) => element.word.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '') == realWord.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), ''),
-                orElse: () => Segment(start: 0, end: 0, word: "", probability: 0),
+                orElse: () => Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none),
               );
             }
             if (wordWithSpan.word.isNotEmpty) {

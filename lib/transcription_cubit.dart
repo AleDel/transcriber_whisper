@@ -399,13 +399,16 @@ static Map<String, Color> availableTags = {
 
   Future<void> useMockTranscriptionEU() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
-    String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test_normalized.json');
+    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test_normalized.json');
+    String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test1_normalized.json');
     //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
     print("transcriptionWhisper jsonString --> $jsonString");
     List<dynamic> jsonList = json.decode(jsonString);
     List<Map<String, dynamic>> listMap = jsonList.map((item) => item as Map<String, dynamic>).toList();
 
-    String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test.txt');
+    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test0.txt');
+    String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test1.txt');
+    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test.txt');
     //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK.txt');
 
     // Formatear el texto real usando la nueva función

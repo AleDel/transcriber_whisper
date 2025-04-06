@@ -80,7 +80,7 @@ List<Object> _procesarDiferenciasDiffUtil(List<Segment> textoTranscrito, List<Se
         for (int i = 0; i < count; i++) {
           comparacion.add(
             ComparacionSegmento(
-              segmentoTranscrito: Segment(start: 0, end: 0, word: "", probability: 0),
+              segmentoTranscrito: Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none),
               palabraReal: palabrasReal[pos + i].texto,
               estado: "omisión",
               indexReal: pos + i,
@@ -162,7 +162,7 @@ List<Object> _procesarDiferenciasDiffUtil(List<Segment> textoTranscrito, List<Se
     } else if (currentRealWordIndex < palabrasReal.length) {
       comparacion.add(
         ComparacionSegmento(
-          segmentoTranscrito: Segment(start: 0, end: 0, word: "", probability: 0),
+          segmentoTranscrito: Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none),
           palabraReal: palabrasReal[currentRealWordIndex].texto,
           estado: "omisión",
           indexReal: currentRealWordIndex,

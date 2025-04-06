@@ -69,7 +69,7 @@ class _TextDisplayWidgetState extends TranscriptionWidgetState<TextDisplayWidget
               final List<Widget> wordWidgets = [];
               for (int i = 0; i < widget.transcription.referenceTextSegments!.length; i++) {
                 final realSegment = widget.transcription.referenceTextSegments![i];
-                final transcritoSegment = i < widget.transcription.audioTranscriptionSegments.length ? widget.transcription.audioTranscriptionSegments[i] : Segment(start: 0, end: 0, word: "", probability: 0);
+                final transcritoSegment = i < widget.transcription.audioTranscriptionSegments.length ? widget.transcription.audioTranscriptionSegments[i] : Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none);
                 final ComparacionSegmento? comparacion = widget.comparacionlist.firstWhereOrNull((element) {
                   if (element is ComparacionSegmento) {
                     return element.indexReal == i;

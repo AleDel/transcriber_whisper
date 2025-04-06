@@ -59,7 +59,7 @@ class AssociatedSegmentCard extends StatelessWidget {
               const Divider(),
               _buildInfoRow("Palabra Real", segment.realWord ?? "N/A"),
               _buildInfoRow("Palabra Transcrita", segment.word),
-              _buildInfoRow("Tipo de Asociación", segment.associationType ?? ""),
+              _buildInfoRow("Tipo de Asociación", segment.associationType.name ?? ""),
               _buildInfoRow("Distancia Levenshtein", segment.levenshteinDistance.toString()),
               _buildInfoRow("Probabilidad", segment.probability.toStringAsFixed(2)),
               Row(children: [_buildInfoRow("Inicio", segment.start.toString()), const SizedBox(width: 16), _buildInfoRow("Fin", segment.end.toString())]),

@@ -1,0 +1,110 @@
+[
+  {
+    "word": "bazen",
+    "start": 3.04,
+    "end": 4.52,
+    "probability": 0.87
+  },
+  {
+    "word": "behin",
+    "start": 4.52,
+    "end": 4.96,
+    "probability": 0.56
+  },
+  {
+    "word": "hondartzatik",
+    "start": 4.96,
+    "end": 6.64,
+    "probability": 0.92
+  },
+  {
+    "word": "egunero",
+    "start": 6.64,
+    "end": 7.28,
+    "probability": 1.0
+  },
+  {
+    "word": "pasatzen",
+    "start": 7.28,
+    "end": 8.04,
+    "probability": 1.0
+  },
+  {
+    "word": "zuen",
+    "start": 8.04,
+    "end": 8.94,
+    "probability": 1.0
+  },
+  {
+    "word": "gizonak",
+    "start": 8.94,
+    "end": 9.86,
+    "probability": 0.98
+  },
+  {
+    "word": "goiz",
+    "start": 9.86,
+    "end": 11.18,
+    "probability": 0.78
+  },
+  {
+    "word": "hartan.",
+    "start": 11.18,
+    "end": 11.7,
+    "probability": 1.0
+  },
+  {
+    "word": "Itsatzetza",
+    "start": 12.0,
+    "end": 13.88,
+    "probability": 0.58
+  },
+  {
+    "word": "itsas",
+    "start": 13.88,
+    "end": 15.44,
+    "probability": 0.76
+  },
+  {
+    "word": "izarrez",
+    "start": 15.44,
+    "end": 17.42,
+    "probability": 0.73
+  },
+  {
+    "word": "eta",
+    "start": 17.42,
+    "end": 18.8,
+    "probability": 0.93
+  },
+  {
+    "word": "beteta",
+    "start": 18.8,
+    "end": 20.36,
+    "probability": 0.89
+  },
+  {
+    "word": "ikusi",
+    "start": 20.36,
+    "end": 21.48,
+    "probability": 0.99
+  },
+  {
+    "word": "zuen",
+    "start": 21.48,
+    "end": 21.88,
+    "probability": 1.0
+  },
+  {
+    "word": "milaka",
+    "start": 21.88,
+    "end": 22.8,
+    "probability": 0.93
+  },
+  {
+    "word": "zeuden.",
+    "start": 22.8,
+    "end": 23.72,
+    "probability": 0.94
+  }
+]

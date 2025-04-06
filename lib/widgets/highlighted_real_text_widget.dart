@@ -130,7 +130,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
               end: segment.end,
               transcribedOrder: (segment.transcribedOrder! + 0.1).toInt(), // Casting a int
               realOrder: segment.realOrder != null ? (segment.realOrder! + 0.1).toInt() : null, // Casting a int o null
-              associationType: "puntuacion",
+              associationType: AssociationType.punctuation,
               transcribedWords: [],
               transcribedWordsProbabilities: [],
               probability: 0,

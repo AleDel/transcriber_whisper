@@ -30,7 +30,7 @@ class _SyncedWordsWidgetState extends State<SyncedWordsWidget> {
                     (segment) =>
                 widget.currentTime >= segment.start &&
                     widget.currentTime <= segment.end,
-                orElse: () => Segment(start: 0, end: 0, word: "", probability: 0),
+                orElse: () => Segment(start: 0, end: 0, word: "", probability: 0, associationType: AssociationType.none),
               );
               return Stack(
                 alignment: Alignment.bottomCenter,

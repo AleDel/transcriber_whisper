@@ -2,31 +2,46 @@ import 'package:collection/collection.dart';
 import 'package:transcriber_whisper/models/word_association.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
 
-class Segment {
-  double start;
-  double end;
-  final String word; // palabra de la transcripcion
-  final double probability;
-  List<String> tags;
-  WordWithSpans? wordWithSpans;
-  WordAssociation? wordAssociation;
-  String? realWord;
-  List<String>? transcribedWords;
-  List<double>? transcribedWordsProbabilities;
-  String? associationType;
-  int? levenshteinDistance;
-  int? realIndex;
-  int? transcribedIndex;
-  int? transcribedOrder;
-  int? insertionOrder;
-  int? realOrder; // Nuevo: Orden en el texto real (para inserciones)
-  int? realWordBeforeIndex; // Nuevo: Índice de la palabra real antes de la inserción
-  int? realWordAfterIndex; // Nuevo: Índice de la palabra real después de la inserción
-  double? realWordBeforeEnd; // Nuevo: Fin de la palabra real antes de la eliminacion
-  double? realWordAfterStart; // Nuevo: Inicio de la palabra real despues de la eliminacion
-  bool isPunctuation;
-  int? rawRealOrder; // Nuevo: Orden original en rawRealTextSegments
+enum AssociationType {
+  coincidence,
+  similar,
+  deleted,
+  inserted,
+  none,
+  punctuation,
+}
 
+class Segment {
+  final double start;
+  final double end;
+  final String word; // Palabra de la transcripción (o puntuación)
+  final double probability;
+  final List<String> tags;
+  final WordWithSpans? wordWithSpans;
+  final WordAssociation? wordAssociation;
+
+  // Información de Alineación
+  final String? realWord; // Palabra del texto de referencia (si está alineada)
+  final List<String> transcribedWords; // Palabras de la transcripción asociadas
+  final List<double> transcribedWordsProbabilities; // Probabilidades de las palabras asociadas
+  final AssociationType associationType; // Tipo de asociación
+  final int? levenshteinDistance; // Distancia de Levenshtein (si es similar)
+  final int? realIndex; // Índice en el texto de referencia
+  int? transcribedIndex; // Índice en la transcripción
+  int? transcribedOrder; // Orden en la transcripción
+  final int? realOrder; // Orden en el texto de referencia (para inserciones)
+  final int? rawRealOrder; // Orden original en rawRealTextSegments
+
+  // Información para Inserciones y Eliminaciones
+  final int? realWordBeforeIndex; // Índice de la palabra real antes de la inserción
+  final int? realWordAfterIndex; // Índice de la palabra real después de la inserción
+  final double? realWordBeforeEnd; // Fin de la palabra real antes de la eliminación
+  final double? realWordAfterStart; // Inicio de la palabra real después de la eliminación
+
+  // Puntuación
+  final bool isPunctuation;
+
+  // Constructor
   Segment({
     required this.start,
     required this.end,
@@ -36,37 +51,45 @@ class Segment {
     this.wordWithSpans,
     this.wordAssociation,
     this.realWord,
-    this.transcribedWords,
-    this.transcribedWordsProbabilities,
-    this.associationType,
+    List<String>? transcribedWords,
+    List<double>? transcribedWordsProbabilities,
+    required this.associationType,
     this.levenshteinDistance,
     this.realIndex,
     this.transcribedIndex,
     this.transcribedOrder,
-    this.insertionOrder,
-    this.realOrder, // Nuevo
-    this.realWordBeforeIndex, // Nuevo
-    this.realWordAfterIndex, // Nuevo
-    this.realWordBeforeEnd, // Nuevo
+    this.realOrder,
+    this.realWordBeforeIndex,
+    this.realWordAfterIndex,
+    this.realWordBeforeEnd,
     this.realWordAfterStart,
-    this.isPunctuation = false, // Nuevo
-    this.rawRealOrder, // Nuevo
-  }) : tags = tags ?? []; // Initialize tags as an empty list if null
+    this.isPunctuation = false,
+    this.rawRealOrder,
+  })  : tags = tags ?? [],
+        transcribedWords = transcribedWords ?? [],
+        transcribedWordsProbabilities = transcribedWordsProbabilities ?? [];
 
+  // Getter para la palabra asociada (si existe)
+  String get associatedWord => transcribedWords.isNotEmpty ? transcribedWords[0] : "";
+
+  // Factory para crear desde un Map
   factory Segment.fromMap(Map<String, dynamic> map) {
     return Segment(
       start: map['start']?.toDouble() ?? 0.0,
       end: map['end']?.toDouble() ?? 0.0,
       word: map['word'] ?? '',
       probability: map['probability']?.toDouble() ?? 0.0,
+      associationType: AssociationType.none,
     );
   }
 
+  // Método toString para debugging
   @override
   String toString() {
-    return 'Segment{start: $start, end: $end, word: $word, probability: $probability, realWord: $realWord, wordAssociation: $wordAssociation, transcribedWords: $transcribedWords, transcribedWordsProbabilities: $transcribedWordsProbabilities, associationType: $associationType, levenshteinDistance: $levenshteinDistance, realIndex: $realIndex, transcribedIndex: $transcribedIndex, transcribedOrder: $transcribedOrder, insertionOrder: $insertionOrder, realOrder: $realOrder, realWordBeforeIndex: $realWordBeforeIndex, realWordAfterIndex: $realWordAfterIndex, realWordBeforeEnd: $realWordBeforeEnd, realWordAfterStart: $realWordAfterStart, isPunctuation: $isPunctuation, rawRealOrder: $rawRealOrder}';
+    return 'Segment{start: $start, end: $end, word: $word, probability: $probability, tags: $tags, wordWithSpans: $wordWithSpans, wordAssociation: $wordAssociation, realWord: $realWord, transcribedWords: $transcribedWords, transcribedWordsProbabilities: $transcribedWordsProbabilities, associationType: $associationType, levenshteinDistance: $levenshteinDistance, realIndex: $realIndex, transcribedIndex: $transcribedIndex, transcribedOrder: $transcribedOrder, realOrder: $realOrder, realWordBeforeIndex: $realWordBeforeIndex, realWordAfterIndex: $realWordAfterIndex, realWordBeforeEnd: $realWordBeforeEnd, realWordAfterStart: $realWordAfterStart, isPunctuation: $isPunctuation, rawRealOrder: $rawRealOrder}';
   }
 
+  // Método copyWith para crear copias modificadas
   Segment copyWith({
     double? start,
     double? end,
@@ -78,19 +101,18 @@ class Segment {
     String? realWord,
     List<String>? transcribedWords,
     List<double>? transcribedWordsProbabilities,
-    String? associationType,
+    AssociationType? associationType,
     int? levenshteinDistance,
     int? realIndex,
     int? transcribedIndex,
     int? transcribedOrder,
-    int? insertionOrder,
-    int? realOrder, // Nuevo
-    int? realWordBeforeIndex, // Nuevo
-    int? realWordAfterIndex, // Nuevo
-    double? realWordBeforeEnd, // Nuevo
-    double? realWordAfterStart, // Nuevo
-    bool? isPunctuation, // Nuevo
-    int? rawRealOrder, // Nuevo
+    int? realOrder,
+    int? realWordBeforeIndex,
+    int? realWordAfterIndex,
+    double? realWordBeforeEnd,
+    double? realWordAfterStart,
+    bool? isPunctuation,
+    int? rawRealOrder,
   }) {
     return Segment(
       start: start ?? this.start,
@@ -108,14 +130,13 @@ class Segment {
       realIndex: realIndex ?? this.realIndex,
       transcribedIndex: transcribedIndex ?? this.transcribedIndex,
       transcribedOrder: transcribedOrder ?? this.transcribedOrder,
-      insertionOrder: insertionOrder ?? this.insertionOrder,
-      realOrder: realOrder ?? this.realOrder, // Nuevo
-      realWordBeforeIndex: realWordBeforeIndex ?? this.realWordBeforeIndex, // Nuevo
-      realWordAfterIndex: realWordAfterIndex ?? this.realWordAfterIndex, // Nuevo
-      realWordBeforeEnd: realWordBeforeEnd ?? this.realWordBeforeEnd, // Nuevo
-      realWordAfterStart: realWordAfterStart ?? this.realWordAfterStart, // Nuevo
-      isPunctuation: isPunctuation ?? this.isPunctuation, // Nuevo
-      rawRealOrder: rawRealOrder ?? this.rawRealOrder, // Nuevo
+      realOrder: realOrder ?? this.realOrder,
+      realWordBeforeIndex: realWordBeforeIndex ?? this.realWordBeforeIndex,
+      realWordAfterIndex: realWordAfterIndex ?? this.realWordAfterIndex,
+      realWordBeforeEnd: realWordBeforeEnd ?? this.realWordBeforeEnd,
+      realWordAfterStart: realWordAfterStart ?? this.realWordAfterStart,
+      isPunctuation: isPunctuation ?? this.isPunctuation,
+      rawRealOrder: rawRealOrder ?? this.rawRealOrder,
     );
   }
 }
