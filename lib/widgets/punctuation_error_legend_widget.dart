@@ -33,7 +33,7 @@ class PunctuationErrorLegendWidget extends StatelessWidget {
           return const Center(child: Text("No hay datos para mostrar."));
         }
         final transcription = state.transcription!;
-        final Map<String, int> punctuationTagCounts = _calculatePunctuationTagCounts(transcription.rawRealTextSegments ?? []);
+        final Map<String, int> punctuationTagCounts = _calculatePunctuationTagCounts(transcription.rawReferenceTextSegments ?? []);
         final int totalPunctuationErrors = punctuationTagCounts.values.fold(0, (sum, count) => sum + count);
 
         final List<String> punctuationSymbols = [',', '.', '!', '?'];

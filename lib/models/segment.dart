@@ -2,8 +2,8 @@ import 'package:transcriber_whisper/models/word_association.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
 
 class Segment {
-  final double start;
-  final double end;
+  double start;
+  double end;
   final String word; // palabra de la transcripcion
   final double probability;
   List<String> tags;
@@ -23,6 +23,8 @@ class Segment {
   int? realWordAfterIndex; // Nuevo: Índice de la palabra real después de la inserción
   double? realWordBeforeEnd; // Nuevo: Fin de la palabra real antes de la eliminacion
   double? realWordAfterStart; // Nuevo: Inicio de la palabra real despues de la eliminacion
+  bool isPunctuation;
+  int? rawRealOrder; // Nuevo: Orden original en rawRealTextSegments
 
   Segment({
     required this.start,
@@ -45,21 +47,23 @@ class Segment {
     this.realWordBeforeIndex, // Nuevo
     this.realWordAfterIndex, // Nuevo
     this.realWordBeforeEnd, // Nuevo
-    this.realWordAfterStart, // Nuevo
+    this.realWordAfterStart,
+    this.isPunctuation = false, // Nuevo
+    this.rawRealOrder, // Nuevo
   }) : tags = tags ?? []; // Initialize tags as an empty list if null
 
   factory Segment.fromMap(Map<String, dynamic> map) {
     return Segment(
       start: map['start']?.toDouble() ?? 0.0,
       end: map['end']?.toDouble() ?? 0.0,
-      word: map['word']?.replaceAll(RegExp(r'[^\w\s]'), '') ?? '',
+      word: map['word'] ?? '',
       probability: map['probability']?.toDouble() ?? 0.0,
     );
   }
 
   @override
   String toString() {
-    return 'Segment{start: $start, end: $end, word: $word, probability: $probability, realWord: $realWord, wordAssociation: $wordAssociation, transcribedWords: $transcribedWords, transcribedWordsProbabilities: $transcribedWordsProbabilities, associationType: $associationType, levenshteinDistance: $levenshteinDistance, realIndex: $realIndex, transcribedIndex: $transcribedIndex, transcribedOrder: $transcribedOrder, insertionOrder: $insertionOrder, realOrder: $realOrder, realWordBeforeIndex: $realWordBeforeIndex, realWordAfterIndex: $realWordAfterIndex, realWordBeforeEnd: $realWordBeforeEnd, realWordAfterStart: $realWordAfterStart}';
+    return 'Segment{start: $start, end: $end, word: $word, probability: $probability, realWord: $realWord, wordAssociation: $wordAssociation, transcribedWords: $transcribedWords, transcribedWordsProbabilities: $transcribedWordsProbabilities, associationType: $associationType, levenshteinDistance: $levenshteinDistance, realIndex: $realIndex, transcribedIndex: $transcribedIndex, transcribedOrder: $transcribedOrder, insertionOrder: $insertionOrder, realOrder: $realOrder, realWordBeforeIndex: $realWordBeforeIndex, realWordAfterIndex: $realWordAfterIndex, realWordBeforeEnd: $realWordBeforeEnd, realWordAfterStart: $realWordAfterStart, isPunctuation: $isPunctuation, rawRealOrder: $rawRealOrder}';
   }
 
   Segment copyWith({
@@ -84,6 +88,8 @@ class Segment {
     int? realWordAfterIndex, // Nuevo
     double? realWordBeforeEnd, // Nuevo
     double? realWordAfterStart, // Nuevo
+    bool? isPunctuation, // Nuevo
+    int? rawRealOrder, // Nuevo
   }) {
     return Segment(
       start: start ?? this.start,
@@ -107,6 +113,8 @@ class Segment {
       realWordAfterIndex: realWordAfterIndex ?? this.realWordAfterIndex, // Nuevo
       realWordBeforeEnd: realWordBeforeEnd ?? this.realWordBeforeEnd, // Nuevo
       realWordAfterStart: realWordAfterStart ?? this.realWordAfterStart, // Nuevo
+      isPunctuation: isPunctuation ?? this.isPunctuation, // Nuevo
+      rawRealOrder: rawRealOrder ?? this.rawRealOrder, // Nuevo
     );
   }
 }

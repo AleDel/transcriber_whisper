@@ -150,19 +150,19 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
         buildWhen: (previous, current) {
       // Reconstruir solo si cambia la transcripción, los segmentos asociados, el texto real, currentWordIndex o audioPosition
       return previous.transcription != current.transcription ||
-          previous.transcription?.associatedSegments != current.transcription?.associatedSegments ||
-          previous.transcription?.getRealText() != current.transcription?.getRealText() ||
+          previous.transcription?.wordAlignmentSegments != current.transcription?.wordAlignmentSegments ||
+          previous.transcription?.referenceText != current.transcription?.referenceText ||
           previous.extradata?.currentWordIndex != current.extradata?.currentWordIndex ||
           previous.extradata?.audioPosition != current.extradata?.audioPosition;
     },
     builder: (context, state) {
-    if (state.transcription == null || state.transcription!.associatedSegments == null || state.transcription!.associatedSegments!.isEmpty) {
+    if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.wordAlignmentSegments!.isEmpty) {
     return const Center(child: Text('No hay transcripción para mostrar'));
     }
-    if (state.transcription!.getRealText() == null || state.transcription!.getRealText()!.isEmpty) {return const Center(child: Text('No hay texto real para mostrar'));
+    if (state.transcription!.referenceText == null || state.transcription!.referenceText!.isEmpty) {return const Center(child: Text('No hay texto real para mostrar'));
     }
-    final realText = state.transcription!.getRealText()!;
-    final associatedSegments = state.transcription!.associatedSegments!;
+    final realText = state.transcription!.referenceText!;
+    final associatedSegments = state.transcription!.wordAlignmentSegments!;
     final expandedSegments = _expandSegments(associatedSegments);
     final paragraphs = realText.split('\n\n');
     return Column(

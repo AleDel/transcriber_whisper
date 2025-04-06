@@ -80,12 +80,12 @@ class RealTextDisplayWidgetState extends TranscriptionWidgetState<RealTextDispla
   Widget build(BuildContext context) {
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        if (state.transcription == null || state.transcription!.realText == null) {
+        if (state.transcription == null || state.transcription!.referenceText == null) {
           return const Center(child: Text("No hay datos para mostrar."));
         }
         final transcription = state.transcription!;
         // Usar rawRealTextSegments en lugar de crear nuevos segmentos
-        List<Segment> segments = transcription.rawRealTextSegments ?? [];
+        List<Segment> segments = transcription.rawReferenceTextSegments ?? [];
 
         return Listener(
           onPointerSignal: _handlePointerSignal,

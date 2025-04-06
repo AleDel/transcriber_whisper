@@ -61,17 +61,17 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.transcribedSegments.isEmpty || !widget.scrollController.hasClients) {
+    if (widget.currentWordIndex == -1 || widget.transcription.audioTranscriptionSegments.isEmpty || !widget.scrollController.hasClients) {
       return;
     }
     if (!widget.scrollController.hasClients) return; // Comprobación adicional
 
     final index = widget.currentWordIndex;
-    final totalDuration = widget.transcription.transcribedSegments.last.end;
+    final totalDuration = widget.transcription.audioTranscriptionSegments.last.end;
     final totalTextWidth = (totalDuration / 1) * zoom;
 
-    final currentWordStart = widget.transcription.transcribedSegments[index].start;
-    final currentWordEnd = widget.transcription.transcribedSegments[index].end;
+    final currentWordStart = widget.transcription.audioTranscriptionSegments[index].start;
+    final currentWordEnd = widget.transcription.audioTranscriptionSegments[index].end;
     final currentWordPosition = (currentWordStart / totalDuration) * totalTextWidth;
     final currentWordWidth = ((currentWordEnd - currentWordStart) / totalDuration) * totalTextWidth;
     final currentWordCenter = currentWordPosition + (currentWordWidth / 2);
@@ -84,11 +84,11 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.transcription.transcribedSegments.isEmpty) {
+    if (widget.transcription.audioTranscriptionSegments.isEmpty) {
       return Container();
     }
 
-    double totalDuration = widget.transcription.transcribedSegments.last.end;
+    double totalDuration = widget.transcription.audioTranscriptionSegments.last.end;
 
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       buildWhen: (previous, current) => previous.transcription != current.transcription || previous.editMode != current.editMode,
@@ -129,7 +129,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                       ),
 
                       // Palabras
-                      ...widget.transcription.transcribedSegments.map((wordData) {
+                      ...widget.transcription.audioTranscriptionSegments.map((wordData) {
                         double wordStart = wordData.start;
                         double wordEnd = wordData.end;
                         double wordPosition = (wordStart / totalDuration) * totalTextWidth;
@@ -146,15 +146,15 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                             onPointerDown: (event) {
                               if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
                                 // Clic secundario (clic derecho)
-                                showContextMenu(event.position, wordIndexes: [widget.transcription.transcribedSegments.indexOf(wordData)]);
+                                showContextMenu(event.position, wordIndexes: [widget.transcription.audioTranscriptionSegments.indexOf(wordData)]);
                               }
                             },
                             child: GestureDetector(
                               onTap: () {
-                                widget.onWordTap(widget.transcription.transcribedSegments.indexOf(wordData));
+                                widget.onWordTap(widget.transcription.audioTranscriptionSegments.indexOf(wordData));
                               },
                               onLongPressStart: (details) {
-                                showContextMenu(details.globalPosition, wordIndexes: [widget.transcription.transcribedSegments.indexOf(wordData)]);
+                                showContextMenu(details.globalPosition, wordIndexes: [widget.transcription.audioTranscriptionSegments.indexOf(wordData)]);
                               },
                               child: Column(
                                 children: [
@@ -167,7 +167,7 @@ class _SlidingTextState extends TranscriptionWidgetState<SlidingText> {
                                         wordData.word,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: widget.transcription.transcribedSegments.indexOf(wordData) == widget.currentWordIndex ? Colors.blue : Colors.black,
+                                          color: widget.transcription.audioTranscriptionSegments.indexOf(wordData) == widget.currentWordIndex ? Colors.blue : Colors.black,
                                         ),
                                         textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,

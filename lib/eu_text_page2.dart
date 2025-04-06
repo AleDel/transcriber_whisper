@@ -64,7 +64,8 @@ class _EUTextPage2State extends State<EUTextPage2> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              _transcriptionTextEditingController.text = state.transcription!.fullTextTranscription!; //state.transcription!.listWordsTrascription!.join(" ").trim();
+              _transcriptionTextEditingController.text = state.transcription!.referenceText!;
+              //_transcriptionTextEditingController.text = state.transcription!.fullTextTranscription!; //state.transcription!.listWordsTrascription!.join(" ").trim();
               //_newTextEditingController.text = state.transcription!.listWordsTexto!.join(" ").trim();
 
               return Center(
@@ -176,7 +177,7 @@ class _EUTextPage2State extends State<EUTextPage2> {
                                             audioPosition: state.extradata!.audioPosition,
                                           ),
                                         ),*/
-                                        Expanded(child: AssociatedSegmentsWidget(alignedSegments: state.transcription!.alignedSegments!)),
+                                        Expanded(child: AssociatedSegmentsWidget(alignedSegments: state.transcription!.wordAlignmentSegments!)),
                                       ],
                                     ),
                                   ) /**/,

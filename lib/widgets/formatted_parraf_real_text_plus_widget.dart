@@ -17,11 +17,11 @@ class FormattedTextWidget extends StatelessWidget {
         if (state.textoRealformadoparrafos == null || state.textoRealformadoparrafos!.isEmpty) {
           return const Center(child: Text('No hay texto para mostrar'));
         }
-        if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) {
+        if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) {
           return const Center(child: Text('No hay transcripción para mostrar'));
         }
         final formattedText = state.textoRealformadoparrafos!;
-        final transsegments = state.transcription!.transcribedSegments;
+        final transsegments = state.transcription!.audioTranscriptionSegments;
         // 1. Dividir el Texto Real en Párrafos
         final paragraphs = formattedText.split('\n\n');
 

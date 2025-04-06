@@ -62,8 +62,8 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return [];
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.rawRealTextSegments!.length) {
-        tags.addAll(sessionCubit.state.transcription!.rawRealTextSegments![i].tags);
+      if (i >= 0 && i < sessionCubit.state.transcription!.rawReferenceTextSegments!.length) {
+        tags.addAll(sessionCubit.state.transcription!.rawReferenceTextSegments![i].tags);
       }
     }
     return tags.toSet().toList();
@@ -164,7 +164,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
   void _editSegment(BuildContext context, int index) {
     final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return;
-    final segment = sessionCubit.state.transcription!.rawRealTextSegments![index];
+    final segment = sessionCubit.state.transcription!.rawReferenceTextSegments![index];
     showDialog(
       context: context,
       builder: (context) {
@@ -185,7 +185,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < transcriberCubit.state.transcription!.rawRealTextSegments!.length) {
+      if (i >= 0 && i < transcriberCubit.state.transcription!.rawReferenceTextSegments!.length) {
         transcriberCubit.addTagToSegment(i, tag);
       }
     }
@@ -201,7 +201,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.rawRealTextSegments!.length) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.rawReferenceTextSegments!.length) {
         sessionCubit.removeTagFromSegment(i, tag);
       }
     }

@@ -295,7 +295,7 @@ static Map<String, Color> availableTags = {
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
 
-        transcription = Transcription.fromListMap(jsonResponse['transcription'], realText: "");
+        transcription = Transcription.fromListMap(referenceText: "", listMap: jsonResponse['transcription']);
         //fullTextTranscription = _transcription!.fulltext!;
         //melSpectrogramBase64 = jsonResponse['mel_spectrogram'];
         //waveformImageBase64 = jsonResponse['waveform_image'];
@@ -412,25 +412,19 @@ static Map<String, Color> availableTags = {
     final formattedRawRealText = formatTextIntoParagraphs(text);
     print("formattedRawRealText --> $formattedRawRealText");
 
-    final transcription = Transcription.fromListMap(listMap, realText: formattedRawRealText);
+    final transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: false, referenceText: formattedRawRealText);
     //final alignedSegments = _createAlignedSegments(formattedRawRealText, transcription.transcriptionSegments);
 
     // Asignar el texto real a la transcripción
-    transcription.realText = formattedRawRealText;
+    transcription.referenceText = formattedRawRealText;
 
-    // Asociar las palabras
-    transcription.associateWords();
-
-    // Realizar el alineamiento complejo
-    final alignedSegments = transcription.alignSegmentsToRealText();
-
-    print(transcription.getAssociatedSegmentsInfo());
-    //print(transcription.getAlignedSegmentsInfo());
+    // Llamar a la función para imprimir la información
+    transcription.printWordAlignmentSegmentsInfo();
 
     await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
 
     // Actualizar el estado
-    emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription.copyWith(alignedSegments: alignedSegments), textoRealformadoparrafos: formattedRawRealText));
+    emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
   }
 
   Future<void> useMockTranscriptionES() async {
@@ -440,14 +434,14 @@ static Map<String, Color> availableTags = {
 
     String formattedText = formatTextIntoParagraphs(text);
     textoRealformadoparrafos = formattedText;
-    transcription = Transcription.fromListMap(textoTransMock, realText: textoRealformadoparrafos);
+    transcription = Transcription.fromListMap(listMap: textoTransMock, referenceText: textoRealformadoparrafos);
 
     // Llamar a associateWords en lugar de calculateWordsWithSpans
-    transcription!.associateWords();
+    //transcription!.associateWords();
 
     // Imprimir información de las asociaciones
-    for (int i = 0; i < transcription!.transcribedSegments.length; i++) {
-      final segment = transcription!.transcribedSegments[i];
+    for (int i = 0; i < transcription!.audioTranscriptionSegments.length; i++) {
+      final segment = transcription!.audioTranscriptionSegments[i];
       print("Segmento ${i + 1}:");
       print("  Palabra transcrita: ${segment.word}");
       print("  Palabra real: ${segment.realWord}");
@@ -478,14 +472,14 @@ static Map<String, Color> availableTags = {
     final newSegments = List<Segment>.from(state.transcription!.transcribedSegments)..[index] = newSegment;
     final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));*/
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawRealTextSegments!.length) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
       return;
     }
-    final segment = state.transcription!.rawRealTextSegments![index];
+    final segment = state.transcription!.rawReferenceTextSegments![index];
     final newTags = List<String>.from(segment.tags)..add(tag);
     final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.rawRealTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(rawRealTextSegments: newSegments);
+    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(rawReferenceTextSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));
   }
 
@@ -499,29 +493,29 @@ static Map<String, Color> availableTags = {
     final newSegments = List<Segment>.from(state.transcription!.transcribedSegments)..[index] = newSegment;
     final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));*/
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawRealTextSegments!.length) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
       return;
     }
-    final segment = state.transcription!.rawRealTextSegments![index];
+    final segment = state.transcription!.rawReferenceTextSegments![index];
     final newTags = List<String>.from(segment.tags)..remove(tag);
     final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.rawRealTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(rawRealTextSegments: newSegments);
+    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(rawReferenceTextSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));
   }
 
   void editSegment(Segment newSegment) {
     if (state.transcription == null) return;
-    final index = state.transcription!.rawRealTextSegments!.indexOf(newSegment);
+    final index = state.transcription!.rawReferenceTextSegments!.indexOf(newSegment);
     if (index == -1) return;
-    final newSegments = List<Segment>.from(state.transcription!.rawRealTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
+    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));
   }
 
   void editSegments(List<int> indexes, String newText) {
     if (state.transcription == null || indexes.isEmpty) return;
-    final newSegments = List<Segment>.from(state.transcription!.rawRealTextSegments!);
+    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!);
     for (int index in indexes) {
       if (index >= 0 && index < newSegments.length) {
         final segment = newSegments[index];
@@ -529,16 +523,16 @@ static Map<String, Color> availableTags = {
         newSegments[index] = newSegment;
       }
     }
-    final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
+    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));
   }
 
   void deleteSegment(int index) {
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawRealTextSegments!.length) {
+    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
       return;
     }
-    final newSegments = List<Segment>.from(state.transcription!.rawRealTextSegments!)..removeAt(index);
-    final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
+    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..removeAt(index);
+    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
     emit(state.copyWith(transcription: newTranscription));
   }
 
@@ -547,26 +541,26 @@ static Map<String, Color> availableTags = {
   }
 
   void updateCurrentWord() {
-    if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) return;
+    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     if (_userSelectedWord) return;
     final currentPosition = state.extradata!.audioPosition;
     if (currentPosition == null) return;
     final currentMillis = currentPosition.inMilliseconds;
-    final index = _binarySearch(state.transcription!.transcribedSegments, currentMillis);
+    final index = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
     if (index != -1) {
       emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
     }
   }
 
   void forceCurrentWord(int index) {
-    if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) return;
+    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     final now = DateTime.now();
     if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
       return;
     }
     _lastForceCurrentWordCall = now;
     _userSelectedWord = true;
-    final segment = state.transcription!.transcribedSegments[index];
+    final segment = state.transcription!.audioTranscriptionSegments[index];
     final startMillis = (segment.start * 1000).toInt();
     final endMillis = (segment.end * 1000).toInt();
     audioPlayer.seek(Duration(milliseconds: startMillis));
@@ -594,14 +588,14 @@ static Map<String, Color> availableTags = {
   }
 
   void forceCurrentAssociatedWord(int index) {
-    if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) return;
+    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     final now = DateTime.now();
     if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
       return;
     }
     _lastForceCurrentWordCall = now;
     _userSelectedWord = true;
-    final segment = state.transcription!.associatedSegments![index];
+    final segment = state.transcription!.wordAlignmentSegments![index];
     final startMillis = (segment.start * 1000).toInt();
     final endMillis = (segment.end * 1000).toInt();
     audioPlayer.seek(Duration(milliseconds: startMillis));
@@ -635,11 +629,11 @@ static Map<String, Color> availableTags = {
   void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
     List<String> selectedTags = [];
     if (selectedIndexes.isNotEmpty) {
-      selectedTags = state.transcription!.rawRealTextSegments![selectedIndexes.first].tags;
+      selectedTags = state.transcription!.rawReferenceTextSegments![selectedIndexes.first].tags;
     } else {
       final index = _getSegmentIndexFromOffset(position);
       if (index != -1) {
-        selectedTags = state.transcription!.rawRealTextSegments![index].tags;
+        selectedTags = state.transcription!.rawReferenceTextSegments![index].tags;
       }
     }
     showDialog(
@@ -743,7 +737,7 @@ static Map<String, Color> availableTags = {
   }
 
   void _editSegment(BuildContext context, int index) {
-    final segment = state.transcription!.rawRealTextSegments![index];
+    final segment = state.transcription!.rawReferenceTextSegments![index];
     String newText = segment.word;
     showDialog(
       context: context,
@@ -779,7 +773,7 @@ static Map<String, Color> availableTags = {
 
   void _editSegments(BuildContext context, List<int> indexes) {
     if (indexes.isEmpty) return;
-    String newText = state.transcription!.rawRealTextSegments![indexes.first].word;
+    String newText = state.transcription!.rawReferenceTextSegments![indexes.first].word;
     showDialog(
       context: context,
       builder: (context) {

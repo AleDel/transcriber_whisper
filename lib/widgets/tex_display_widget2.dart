@@ -67,9 +67,9 @@ class _TextDisplayWidgetState extends TranscriptionWidgetState<TextDisplayWidget
             builder: (context, constraints) {
               final availableWidth = constraints.maxWidth;
               final List<Widget> wordWidgets = [];
-              for (int i = 0; i < widget.transcription.realTextSegments!.length; i++) {
-                final realSegment = widget.transcription.realTextSegments![i];
-                final transcritoSegment = i < widget.transcription.transcribedSegments.length ? widget.transcription.transcribedSegments[i] : Segment(start: 0, end: 0, word: "", probability: 0);
+              for (int i = 0; i < widget.transcription.referenceTextSegments!.length; i++) {
+                final realSegment = widget.transcription.referenceTextSegments![i];
+                final transcritoSegment = i < widget.transcription.audioTranscriptionSegments.length ? widget.transcription.audioTranscriptionSegments[i] : Segment(start: 0, end: 0, word: "", probability: 0);
                 final ComparacionSegmento? comparacion = widget.comparacionlist.firstWhereOrNull((element) {
                   if (element is ComparacionSegmento) {
                     return element.indexReal == i;
@@ -144,13 +144,13 @@ class _TextDisplayWidgetState extends TranscriptionWidgetState<TextDisplayWidget
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.transcribedSegments.isEmpty || !scrollController.hasClients || !mounted) {
+    if (widget.currentWordIndex == -1 || widget.transcription.audioTranscriptionSegments.isEmpty || !scrollController.hasClients || !mounted) {
       return;
     }
     final index = widget.currentWordIndex;
     double offset = 0;
     for (int i = 0; i < index; i++) {
-      final realSegment = widget.transcription.realTextSegments![i];
+      final realSegment = widget.transcription.referenceTextSegments![i];
       final textPainter = TextPainter(
         text: TextSpan(text: realSegment.word),
         textDirection: TextDirection.ltr,

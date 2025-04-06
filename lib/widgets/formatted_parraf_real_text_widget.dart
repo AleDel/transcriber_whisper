@@ -46,10 +46,10 @@ class _FormattedTextWidgetState extends TranscriptionWidgetState<FormattedTextWi
     }
     final bool isSelected = _isWordSelected(associatedWordIndex);
     final state = context.read<TranscriptionCubit>().state;
-    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.transcribedSegments.length) {
+    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.audioTranscriptionSegments.length) {
       return isSelected ? Colors.grey.withOpacity(0.5) : null;
     }
-    final List<String> tags = state.transcription!.transcribedSegments[associatedWordIndex].tags;
+    final List<String> tags = state.transcription!.audioTranscriptionSegments[associatedWordIndex].tags;
     if (tags.isNotEmpty) {
       return getMixedTagColor(tags);
     }
@@ -111,7 +111,7 @@ class _FormattedTextWidgetState extends TranscriptionWidgetState<FormattedTextWi
         if (state.textoRealformadoparrafos == null || state.textoRealformadoparrafos!.isEmpty) {
           return const Center(child: Text('No hay texto para mostrar'));
         }
-        if (state.transcription == null || state.transcription!.transcribedSegments.isEmpty) {
+        if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) {
           return const Center(child: Text('No hay transcripción para mostrar'));
         }
         final formattedText = state.textoRealformadoparrafos!;

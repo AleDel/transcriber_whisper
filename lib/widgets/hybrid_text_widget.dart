@@ -77,17 +77,17 @@ class _HybridTextWidgetState extends TranscriptionWidgetState<HybridTextWidget> 
   @override
   void scrollToCurrentWord() {
     if (!internalAutoScrollEnabled) return;
-    if (widget.currentWordIndex == -1 || widget.transcription.transcribedSegments.isEmpty || !widget.scrollController.hasClients) {
+    if (widget.currentWordIndex == -1 || widget.transcription.audioTranscriptionSegments.isEmpty || !widget.scrollController.hasClients) {
       return;
     }
     if (!widget.scrollController.hasClients) return;
 
     final index = widget.currentWordIndex;
-    final totalDuration = widget.transcription.transcribedSegments.last.end;
+    final totalDuration = widget.transcription.audioTranscriptionSegments.last.end;
     final totalTextWidth = (totalDuration / 1) * zoom;
 
-    final currentWordStart = widget.transcription.transcribedSegments[index].start;
-    final currentWordEnd = widget.transcription.transcribedSegments[index].end;
+    final currentWordStart = widget.transcription.audioTranscriptionSegments[index].start;
+    final currentWordEnd = widget.transcription.audioTranscriptionSegments[index].end;
     final currentWordPosition = (currentWordStart / totalDuration) * totalTextWidth;
     final currentWordWidth = ((currentWordEnd - currentWordStart) / totalDuration) * totalTextWidth;
     final currentWordCenter = currentWordPosition + (currentWordWidth / 2);
@@ -104,10 +104,10 @@ class _HybridTextWidgetState extends TranscriptionWidgetState<HybridTextWidget> 
     }
     final bool isSelected = _isWordSelected(associatedWordIndex);
     final state = context.read<TranscriptionCubit>().state;
-    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.transcribedSegments.length) {
+    if (state.transcription == null || associatedWordIndex < 0 || associatedWordIndex >= state.transcription!.audioTranscriptionSegments.length) {
       return isSelected ? Colors.grey.withOpacity(0.5) : null;
     }
-    final List<String> tags = state.transcription!.transcribedSegments[associatedWordIndex].tags;
+    final List<String> tags = state.transcription!.audioTranscriptionSegments[associatedWordIndex].tags;
     if (tags.isNotEmpty) {
       return getMixedTagColor(tags);
     }
@@ -119,11 +119,11 @@ class _HybridTextWidgetState extends TranscriptionWidgetState<HybridTextWidget> 
 
   @override
   Widget build(BuildContext context) {
-    if (widget.transcription.transcribedSegments.isEmpty) {
+    if (widget.transcription.audioTranscriptionSegments.isEmpty) {
       return Container();
     }
 
-    double totalDuration = widget.transcription.transcribedSegments.last.end;
+    double totalDuration = widget.transcription.audioTranscriptionSegments.last.end;
 
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       buildWhen: (previous, current) => previous.transcription != current.transcription || previous.editMode != current.editMode,
@@ -154,8 +154,8 @@ class _HybridTextWidgetState extends TranscriptionWidgetState<HybridTextWidget> 
                 }
               }
               Segment? segment;
-              if (associatedWordIndex != -1 && state.transcription != null && associatedWordIndex < state.transcription!.transcribedSegments.length) {
-                segment = state.transcription!.transcribedSegments[associatedWordIndex];
+              if (associatedWordIndex != -1 && state.transcription != null && associatedWordIndex < state.transcription!.audioTranscriptionSegments.length) {
+                segment = state.transcription!.audioTranscriptionSegments[associatedWordIndex];
               }
               double wordStart = 0;
               double wordEnd = 0;

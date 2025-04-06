@@ -24,7 +24,7 @@ class DiffRowsWidget extends StatelessWidget {
             Wrap(
               alignment: WrapAlignment.center,
               children:
-              state.transcription!.realTextSegments!.asMap().entries.map((entry) {
+              state.transcription!.referenceTextSegments!.asMap().entries.map((entry) {
                     final int index = entry.key;
                     final segment = entry.value;
                     final correspondingWord = state.wordsWithSpans.firstWhere(
@@ -51,7 +51,7 @@ class DiffRowsWidget extends StatelessWidget {
                   state.wordsWithSpans
                       .where(
                         (wordWithSpans) =>
-                            state.transcription!.realTextSegments!.indexWhere(
+                            state.transcription!.referenceTextSegments!.indexWhere(
                               (segment) =>
                                   segment.word.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]'), '') ==
                                   wordWithSpans.word.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]'), ''),

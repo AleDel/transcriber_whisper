@@ -55,9 +55,9 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
         builder: (context, state) {
           List<FormattedWord> formattedWords = [];
           // Check if transcription and listWordsTrascription are not null
-          if (state.transcription != null && state.transcription!.transcribedWords != null) {
-            _transcriptionTextEditingController.text = state.transcription!.transcribedWords!.join(" ").trim();
-            _newTextEditingController.text = state.transcription!.realTextWords!.join(" ").trim();
+          if (state.transcription != null && state.transcription!.audioTranscriptionWords != null) {
+            _transcriptionTextEditingController.text = state.transcription!.audioTranscriptionWords!.join(" ").trim();
+            _newTextEditingController.text = state.transcription!.referenceTextWords!.join(" ").trim();
             //_oldTextEditingController.text = state.transcription!.realTextWords!.join(" ");
             //_newTextEditingController.text = state.transcription!.listWordsTrascription!.join(" ");
 
@@ -171,14 +171,14 @@ class _OtraDiffPageState extends State<OtraDiffPage> {
                         ),
                       ),
                       // Aquí añadimos el WordComparisonWidget
-                      if (state.transcription != null && state.transcription!.transcribedWords != null && state.transcription!.realTextWords != null)
+                      if (state.transcription != null && state.transcription!.audioTranscriptionWords != null && state.transcription!.referenceTextWords != null)
                         WordComparisonWidget(
-                          text1Words: state.transcription!.realTextWords!,
-                          text2Words: state.transcription!.transcribedWords!,
+                          text1Words: state.transcription!.referenceTextWords!,
+                          text2Words: state.transcription!.audioTranscriptionWords!,
                           diffCleanupType: _diffCleanupType ?? DiffCleanupType.SEMANTIC,
                           diffTimeout: diffTimeoutToDouble(),
                           diffEditCost: editCostToDouble(),
-                          originalTextWords: state.transcription!.realTextWords!,
+                          originalTextWords: state.transcription!.referenceTextWords!,
                         ),
                       Padding(
                         padding: const EdgeInsets.only(top: 25.0),

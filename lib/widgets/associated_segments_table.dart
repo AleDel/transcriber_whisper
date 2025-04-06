@@ -46,11 +46,11 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
       if (query.isEmpty) return;
 
       // Buscar en el texto real
-      if (state.transcription?.realTextWords != null) {
-        for (int i = 0; i < state.transcription!.realTextWords!.length; i++) {
-          String word = state.transcription!.realTextWords![i];
+      if (state.transcription?.referenceTextWords != null) {
+        for (int i = 0; i < state.transcription!.referenceTextWords!.length; i++) {
+          String word = state.transcription!.referenceTextWords![i];
           if (word.toLowerCase().contains(query.toLowerCase())) {
-            String context = _getContext(state.transcription!.realTextWords!, i);
+            String context = _getContext(state.transcription!.referenceTextWords!, i);
             _searchResults.add({"word": word, "type": "real", "context": context, "position": i});
           }
         }
@@ -96,7 +96,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
       builder: (context, state) {
         //_realTextEditingController.text = state.transcription?.realTextWords?.join(" ").trim() ?? "";
         // Inicializar los TextField con el texto real y el texto transcrito
-        _realTextEditingController.text =
+      _realTextEditingController.text =
             widget.realTextSegments
                 ?.asMap()
                 .entries
@@ -109,7 +109,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
             "";
         /**/
         _transcriptionTextEditingController.text =
-            state.transcription?.transcribedSegments
+            state.transcription?.audioTranscriptionSegments
                 ?.asMap()
                 .entries
                 .map((entry) {
@@ -198,7 +198,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: HighlightedRealTextWidget(
+                      child: Text("ok"),/*HighlightedRealTextWidget(
                         currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                         onWordTap: (index) {
                           getIt<TranscriptionCubit>().forceCurrentWord(index);
@@ -209,10 +209,10 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                         onShowAssociatedWordsChanged: (bool value) {},
                         onShowOnlyDifferentWordsChanged: (bool value) {},
                         onHighlightDifferencesChanged: (bool value) {},
-                      ),
+                      ),*/
                     ),
                     const SizedBox(width: 10), // Espacio entre los widgets
-                    Expanded(child: SizedBox(height: 500, width: 200, child: AssociatedSegmentsDisplayWidget(associatedSegments: state.transcription!.associatedSegments!))),
+                    Expanded(child: SizedBox(height: 500, width: 200, child: AssociatedSegmentsDisplayWidget(associatedSegments: state.transcription!.wordAlignmentSegments!))),
                   ],
                 ),
               ),
