@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:transcriber_whisper/models/word_association.dart';
 import 'package:transcriber_whisper/models/word_with_spans.dart';
 
