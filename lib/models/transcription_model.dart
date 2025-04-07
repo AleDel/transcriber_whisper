@@ -353,6 +353,8 @@ class Transcription {
           // Añadir el segmento a la lista de segmentos asociados
           if (exactMatchSegment.transcribedIndex != null) {
             _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, exactMatchSegment.transcribedIndex);
+            //Añadir este print
+            print("_associateWords - ${referenceSegment.word} en el indice $referenceIndex se ha asociado con ${exactMatchSegment.word} en el indice ${exactMatchSegment.transcribedIndex} por coincidencia exacta");
           } else {
             print("_associateWords - Error: exactMatchSegment.transcribedIndex es null para ${exactMatchSegment.word}");
           }
@@ -394,6 +396,8 @@ class Transcription {
               // Añadir el segmento a la lista de segmentos asociados
               if (closestSegment.transcribedIndex != null) {
                 _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, closestSegment.transcribedIndex);
+                //Añadir este print
+                print("_associateWords - ${referenceSegment.word} en el indice $referenceIndex se ha asociado con ${closestSegment.word} en el indice ${closestSegment.transcribedIndex} por similitud (distancia: $minDistance)");
               } else {
                 print("_associateWords - Error: closestSegment.transcribedIndex es null para ${closestSegment.word}");
               }
@@ -442,7 +446,6 @@ class Transcription {
         }
       } else {
         print("_associateWords - Ya asociado: ${referenceSegment.word} en el indice $referenceIndex");
-        print("_associateWords - ${referenceSegment.word} en el indice $referenceIndex se ha asociado con ${associatedSegment.word} en el indice ${associatedSegment.transcribedIndex}");
       }
     }
     print("_associateWords - Buscando inserciones parecidas para las palabras eliminadas potenciales");
@@ -495,8 +498,9 @@ class Transcription {
         );
         // Añadir el segmento a la lista de segmentos asociados
         if (closestSegment.transcribedIndex != null) {
-          // Todo revisar deletedWord.realIndex! podria ser null?
           _createAndAddWordAlignmentSegment(newAssociatedSegment, deletedWord.realIndex!, closestSegment.transcribedIndex);
+          //Añadir este print
+          print("_associateWords - ${deletedWord.word} en el indice ${deletedWord.realIndex} se ha asociado con ${closestSegment.word} en el indice ${closestSegment.transcribedIndex} por similitud (distancia: $minDistance) como insercion");
         } else {
           print("_associateWords - Error: closestSegment.transcribedIndex es null para ${closestSegment.word}");
         }
