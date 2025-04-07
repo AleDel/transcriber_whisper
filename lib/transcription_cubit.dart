@@ -73,7 +73,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     'Jauzia': Colors.grey[300]!,
     'Errepikapena': Colors.grey[300]!,
   };
-/*static Map<String, Color> availableTags = {
+  /*static Map<String, Color> availableTags = {
     'Omisioa': Colors.grey[100]!,
     'Ordezkapena': Colors.grey[200]!,
     'Asmaketa': Colors.grey[300]!,
@@ -397,25 +397,47 @@ static Map<String, Color> availableTags = {
     return paragraphs.join('\n\n');
   }
 
+  /*String formatTextIntoParagraphs(String text) {
+    // Eliminar espacios al principio y al final del texto
+    text = text.trim();
+
+    // Reemplazar múltiples saltos de línea por dos saltos de línea
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    // Reemplazar múltiples espacios por un solo espacio
+    text = text.replaceAll(RegExp(r'\s{2,}'), ' ');
+
+    // Eliminar saltos de línea al principio o al final de cada párrafo
+    text = text.replaceAll(RegExp(r'^\n+|\n+$'), '');
+
+    // Eliminar saltos de línea simples dentro de un párrafo
+    text = text.replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ');
+
+    return text;
+  }*/
+
   Future<void> useMockTranscriptionEU() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
     //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test_normalized.json');
-    String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test1_normalized.json');
-    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
+    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test0_normalized.json');
+    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test1_normalized.json');
+    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test2_normalized.json');
+    String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
     print("transcriptionWhisper jsonString --> $jsonString");
     List<dynamic> jsonList = json.decode(jsonString);
     List<Map<String, dynamic>> listMap = jsonList.map((item) => item as Map<String, dynamic>).toList();
 
     //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test0.txt');
-    String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test1.txt');
+    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test1.txt');
+    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test2.txt');
     //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test.txt');
-    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK.txt');
+    String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK.txt');
 
     // Formatear el texto real usando la nueva función
     final formattedRawRealText = formatTextIntoParagraphs(text);
     print("formattedRawRealText --> $formattedRawRealText");
 
-    final transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: false, referenceText: formattedRawRealText);
+    final transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
     //final alignedSegments = _createAlignedSegments(formattedRawRealText, transcription.transcriptionSegments);
 
     // Asignar el texto real a la transcripción
@@ -543,19 +565,103 @@ static Map<String, Color> availableTags = {
     _autoScrollEnabled = value;
   }
 
-  void updateCurrentWord() {
-    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
+
+  /*void updateCurrentWord() {
+    if (state.transcription == null) return;
     if (_userSelectedWord) return;
     final currentPosition = state.extradata!.audioPosition;
     if (currentPosition == null) return;
     final currentMillis = currentPosition.inMilliseconds;
-    final index = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
-    if (index != -1) {
-      emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
+    int currentWordIndex = -1;
+    int currentAssociatedWordIndex = -1;
+    // Buscar en audioTranscriptionSegments
+    if (state.transcription!.audioTranscriptionSegments.isNotEmpty) {
+      currentWordIndex = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
     }
+    // Todo Buscar una forma mas rapida y eficiente de buscar el indice de la palabra segun la posicion del audio
+    // Buscar en wordAlignmentSegments
+    if (state.transcription!.wordAlignmentSegments != null) {
+      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+        final segment = state.transcription!.wordAlignmentSegments![i];
+        final startMillis = (segment.start * 1000).toInt();
+        final endMillis = (segment.end * 1000).toInt();
+        if (currentMillis >= startMillis && currentMillis <= endMillis) {
+          currentAssociatedWordIndex = i;
+          break;
+        }
+      }
+    }
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
+  }*/
+
+  void updateCurrentWord() {
+    if (state.transcription == null) return;
+    if (_userSelectedWord) return;
+    final currentPosition = state.extradata!.audioPosition;
+    if (currentPosition == null) return;
+    final currentMillis = currentPosition.inMilliseconds;
+    int currentWordIndex = -1;
+    int currentAssociatedWordIndex = -1;
+    // Buscar en audioTranscriptionSegments
+    if (state.transcription!.audioTranscriptionSegments.isNotEmpty) {
+      currentWordIndex = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
+    }
+    // Buscar en wordAlignmentSegments
+    if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegments!.isNotEmpty) {
+      currentAssociatedWordIndex = _binarySearchAssociated(state.transcription!.wordAlignmentSegments!, currentMillis);
+    }
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
   }
 
+
   void forceCurrentWord(int index) {
+    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
+    final now = DateTime.now();
+    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
+      return;
+    }
+    _lastForceCurrentWordCall = now;
+    _userSelectedWord = true;
+    final segment = state.transcription!.audioTranscriptionSegments[index];
+    final startMillis = (segment.start * 1000).toInt();
+    final endMillis = (segment.end * 1000).toInt();
+    audioPlayer.seek(Duration(milliseconds: startMillis));
+    // Buscar el indice de la palabra asociada
+    int associatedWordIndex = -1;
+    if(state.transcription!.wordAlignmentSegments != null){
+      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+        final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+        if (associatedSegment.start == segment.start && associatedSegment.end == segment.end) {
+          associatedWordIndex = i;
+          break;
+        }
+      }
+    }
+    print("llamado forceCurrentWord con index $index : resultado: currentWordIndex $index associatedWordIndex $associatedWordIndex");
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
+
+    if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
+      _wordPlayTimer!.cancel();
+    }
+
+    if (state.extradata!.playAndStopWordOnSelect) {
+      if (_isPlayingWord) {
+        audioPlayer.pause();
+      }
+      _isPlayingWord = true;
+      audioPlayer.resume();
+      _wordPlayTimer = Timer(Duration(milliseconds: endMillis - startMillis), () {
+        audioPlayer.pause();
+        _isPlayingWord = false;
+      });
+    }
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _userSelectedWord = false;
+    });
+  }
+
+  /*void forceCurrentWord(int index) {
     if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     final now = DateTime.now();
     if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
@@ -588,9 +694,65 @@ static Map<String, Color> availableTags = {
     Future.delayed(const Duration(milliseconds: 500), () {
       _userSelectedWord = false;
     });
+  }*/
+
+  /*// Nueva función para mapear índices
+  int mapWordAlignmentIndexToAudioTranscriptionIndex(int wordAlignmentIndex) {
+    if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.audioTranscriptionSegments.isEmpty) {
+      return -1; // O un valor que indique error
+    }
+    if (wordAlignmentIndex < 0) {
+      return -1;
+    }
+    int audioTranscriptionIndex = 0;
+    for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+      final wordAlignmentSegment = state.transcription!.wordAlignmentSegments![i];
+      if (wordAlignmentSegment.word == "\n\n") {
+        continue;
+      }
+      if (i == wordAlignmentIndex) {
+        // Encontrar el segmento correspondiente en audioTranscriptionSegments
+        for (int j = 0; j < state.transcription!.audioTranscriptionSegments.length; j++) {
+          final audioTranscriptionSegment = state.transcription!.audioTranscriptionSegments[j];
+          if (audioTranscriptionSegment.start == wordAlignmentSegment.start / 1000) {
+            return j;
+          }
+        }
+      }
+    }
+    return -1; // O un valor que indique error
   }
 
-  void forceCurrentAssociatedWord(int index) {
+  // Nueva función para manejar wordAlignmentSegments
+  void forceCurrentWordFromAlignment(int index) {
+    if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.wordAlignmentSegments!.isEmpty) {
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
+      return;
+    }
+    _lastForceCurrentWordCall = now;
+    _userSelectedWord = true;
+    if (index < 0) {
+      index = 0;
+    }
+    if (index >= state.transcription!.wordAlignmentSegments!.length) {
+      index = state.transcription!.wordAlignmentSegments!.length - 1;
+    }
+    final segment = state.transcription!.wordAlignmentSegments![index];
+
+    final startMillis = (segment.start * 1000).toInt();
+    final newPosition = Duration(milliseconds: startMillis);
+
+    audioPlayer.seek(newPosition);
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, audioPosition: newPosition)));
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _userSelectedWord = false;
+    });
+  }*/
+
+  /*void forceCurrentAssociatedWord(int index) {
     if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     final now = DateTime.now();
     if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
@@ -623,7 +785,7 @@ static Map<String, Color> availableTags = {
     Future.delayed(const Duration(milliseconds: 500), () {
       _userSelectedWord = false;
     });
-  }
+  }*/
 
   void togglePlayAndStopWordOnSelect() {
     emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
@@ -721,6 +883,24 @@ static Map<String, Color> availableTags = {
   }
 
   int _binarySearch(List<Segment> segments, int target) {
+    int left = 0;
+    int right = segments.length - 1;
+    while (left <= right) {
+      int mid = left + ((right - left) ~/ 2);
+      final segment = segments[mid];
+      final startMillis = (segment.start * 1000).toInt();
+      final endMillis = (segment.end * 1000).toInt();
+      if (target >= startMillis && target <= endMillis) {
+        return mid;
+      } else if (target < startMillis) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+    return -1;
+  }
+  int _binarySearchAssociated(List<Segment> segments, int target) {
     int left = 0;
     int right = segments.length - 1;
     while (left <= right) {

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/widgets/associated_segments_display_widget.dart';
+import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
+import 'package:transcriber_whisper/widgets/loadingWidget.dart';
 import 'package:transcriber_whisper/widgets/real_text_display_widget.dart';
 import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
 
@@ -121,7 +123,8 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
             "";
         _associatedTextEditingController.text = widget.associatedSegments?.map((segment) => segment.word).join(" ") ?? "";
         if (widget.associatedSegments == null || widget.realTextSegments == null) {
-          return const Center(child: Text("No hay datos para mostrar."));
+          //return const Center(child: Text("No hay datos para mostrar."));
+          return const Center(child: CircularProgressIndicator());
         }
 
         // Contar palabras insertadas
@@ -178,6 +181,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                 ),
               ),
               const SizedBox(height: 10),
+              AudioPlayerWidget(),
               SingleChildScrollView(
                 controller: _scrollController,
                 scrollDirection: Axis.horizontal,
@@ -188,28 +192,34 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                   waveformImageBase64: state.waveformImageBase64,
                   scrollController: _scrollController,
                   onWordTap: (index) {
+                    print("onWordTap: SlidingText --> $index");
                     getIt<TranscriptionCubit>().forceCurrentWord(index);
+                    //getIt<TranscriptionCubit>().forceCurrentAssociatedWord(index);
                   },
                 ),
               ),
-              SizedBox(height: 100, child: RealTextDisplayWidget(transcription: state.transcription!, audioPosition: Duration(), currentWordIndex: 0, onWordTap: (int) {})),
+              SizedBox(height: 100, child: RealTextDisplayWidget(transcription: state.transcription!, audioPosition: Duration(), currentWordIndex: 0, onWordTap: (int index) {getIt<TranscriptionCubit>().forceCurrentWord(index);})),
               // Nuevo: Row para los dos widgets
               SizedBox(height: 500,
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text("ok"),/*HighlightedRealTextWidget(
-                        currentWordIndex: state.extradata?.currentWordIndex ?? -1,
-                        onWordTap: (index) {
-                          getIt<TranscriptionCubit>().forceCurrentWord(index);
-                        },
-                        transcription: state.transcription!,
-                        audioPosition: state.extradata!.audioPosition,
-                        scrollController: ScrollController(),
-                        onShowAssociatedWordsChanged: (bool value) {},
-                        onShowOnlyDifferentWordsChanged: (bool value) {},
-                        onHighlightDifferencesChanged: (bool value) {},
-                      ),*/
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: HighlightedRealTextWidget(
+                          currentWordIndex: state.extradata?.currentAssociatedWordIndex ?? -1,
+                          onWordTap: (index) {
+                            print("onWordTap: HighlightedRealTextWidget --> $index");
+                            getIt<TranscriptionCubit>().forceCurrentWord(index);
+                          },
+                          transcription: state.transcription!,
+                          audioPosition: state.extradata!.audioPosition,
+                          scrollController: ScrollController(),
+                          onShowAssociatedWordsChanged: (bool value) {},
+                          onShowOnlyDifferentWordsChanged: (bool value) {},
+                          onHighlightDifferencesChanged: (bool value) {},
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 10), // Espacio entre los widgets
                     Expanded(child: SizedBox(height: 500, width: 200, child: AssociatedSegmentsDisplayWidget(associatedSegments: state.transcription!.wordAlignmentSegments!))),

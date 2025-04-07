@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:transcriber_whisper/models/segment.dart';
 import '../models/word_association.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-
 import '../transcription_cubit.dart';
+import '../transcription_state.dart';
 
 class AssociatedSegmentsDisplayWidget extends StatelessWidget {
   final List<Segment> associatedSegments;
@@ -13,23 +12,52 @@ class AssociatedSegmentsDisplayWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return associatedSegments.isEmpty
-        ? const Center(child: Text("No hay segmentos asociados."))
-        : SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(associatedSegments.length, (index) {
-          final segment = associatedSegments[index];
-          return AssociatedSegmentCard(
-            segment: segment,
-            index: index,
-            onTap: (index) {
-              // Llamar al Cubit para reproducir el audio del segmento
-              context.read<TranscriptionCubit>().forceCurrentAssociatedWord(index);
-            },
-          );
-        }),
-      ),
+    return BlocBuilder<TranscriptionCubit, TranscriptionState>(
+      builder: (context, state) {
+        return associatedSegments.isEmpty
+            ? const Center(child: Text("No hay segmentos asociados."))
+            : SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(associatedSegments.length, (index) {
+              final segment = associatedSegments[index];
+              return AssociatedSegmentCard(
+                segment: segment,
+                index: index,
+                onTap: (indexInAssociatedSegments) {
+                  print("onWordTap: AssociatedSegmentsDisplayWidget --> $indexInAssociatedSegments");
+                  // Buscar el índice correspondiente en audioTranscriptionSegments
+                  int indexInAudioTranscriptionSegments = -1;
+                  if (state.transcription != null && state.transcription!.audioTranscriptionSegments.isNotEmpty) {
+                    if (segment.associationType == AssociationType.punctuation) {
+                      final segmentToFind = associatedSegments[indexInAssociatedSegments - 1];
+                      for (int j = 0; j < state.transcription!.audioTranscriptionSegments.length; j++) {
+                        final audioSegment = state.transcription!.audioTranscriptionSegments[j];
+                        if (audioSegment.start == segmentToFind.start && audioSegment.end == segmentToFind.end) {
+                          indexInAudioTranscriptionSegments = j;
+                          break;
+                        }
+                      }
+                    } else {
+                      for (int j = 0; j < state.transcription!.audioTranscriptionSegments.length; j++) {
+                        final audioSegment = state.transcription!.audioTranscriptionSegments[j];
+                        if (audioSegment.start == segment.start && audioSegment.end == segment.end) {
+                          indexInAudioTranscriptionSegments = j;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  if (indexInAudioTranscriptionSegments != -1) {
+                    // Llamar al Cubit para reproducir el audio del segmento
+                    context.read<TranscriptionCubit>().forceCurrentWord(indexInAudioTranscriptionSegments);
+                  }
+                },
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }

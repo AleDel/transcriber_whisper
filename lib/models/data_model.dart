@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class Data extends Equatable {
   final int currentWordIndex;
+  final int currentAssociatedWordIndex;
   final Duration audioPosition;
   final Duration audioDuration;
   final String? audioFilePath;
@@ -9,6 +10,7 @@ class Data extends Equatable {
 
   const Data({
     this.currentWordIndex = -1,
+    this.currentAssociatedWordIndex = -1,
     this.audioPosition = Duration.zero,
     this.audioDuration = Duration.zero,
     this.audioFilePath,
@@ -17,6 +19,7 @@ class Data extends Equatable {
 
   Data copyWith({
     int? currentWordIndex,
+    int? currentAssociatedWordIndex,
     Duration? audioPosition,
     Duration? audioDuration,
     String? audioFilePath,
@@ -24,6 +27,7 @@ class Data extends Equatable {
   }) {
     return Data(
       currentWordIndex: currentWordIndex ?? this.currentWordIndex,
+      currentAssociatedWordIndex: currentAssociatedWordIndex ?? this.currentAssociatedWordIndex,
       audioPosition: audioPosition ?? this.audioPosition,
       audioDuration: audioDuration ?? this.audioDuration,
       audioFilePath: audioFilePath ?? this.audioFilePath,
@@ -34,6 +38,7 @@ class Data extends Equatable {
   @override
   List<Object?> get props => [
     currentWordIndex,
+    currentAssociatedWordIndex,
     audioPosition,
     audioDuration,
     audioFilePath,

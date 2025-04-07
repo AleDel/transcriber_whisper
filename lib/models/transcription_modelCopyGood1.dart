@@ -241,19 +241,15 @@ class Transcription {
 
   void associateWords() {
     print("associateWords - Inicio");
-
     // Asociar las palabras
     _associateWords();
-
     // Contar palabras no asociadas
     List<String> unassociatedWords = _getUnassociatedReferenceWords();
     int unassociatedWordCount = unassociatedWords.length;
     print("associateWords - Palabras no asociadas en el texto de referencia antes de addUnassociatedInsertions(): $unassociatedWordCount");
     print("associateWords - Lista de palabras no asociadas en el texto de referencia antes de addUnassociatedInsertions(): $unassociatedWords");
-
     // Añadir las inserciones no asociadas
     addUnassociatedInsertions();
-
     print("associateWords - Fin");
   }
 
@@ -460,6 +456,35 @@ class Transcription {
     print("_associateWords - Fin");
   }
 
+  /*
+  void _createAndAddWordAlignmentSegment(Segment newAssociatedSegment, int? referenceIndex, int? audioTranscriptionIndex) {
+    // Verificar si la palabra real o la palabra transcrita ya están asociadas
+    if (wordAlignmentSegments.any((element) => element.realIndex == referenceIndex || element.transcribedIndex == audioTranscriptionIndex)) {
+      if (wordAlignmentSegments.any((element) => element.realIndex == referenceIndex)) {
+        print("_createAndAddWordAlignmentSegment - La palabra real ${newAssociatedSegment.realWord} ya está asociada en el indice $referenceIndex. No se asocia");
+      }
+      if (wordAlignmentSegments.any((element) => element.transcribedIndex == audioTranscriptionIndex)) {
+        print(
+          "_createAndAddWordAlignmentSegment - La palabra transcrita ${newAssociatedSegment.transcribedWords.first} ya está asociada en el indice $audioTranscriptionIndex. No se asocia",
+        );
+      }
+      return;
+    }
+    // Añadir el segmento a associatedSegments
+    wordAlignmentSegments.add(newAssociatedSegment);
+    // Poblar el mapa
+    if (newAssociatedSegment.transcribedWords.isNotEmpty) {
+      if (!_wordAlignmentSegmentsByAudioTranscriptionWord.containsKey(newAssociatedSegment.transcribedWords.first)) {
+        _wordAlignmentSegmentsByAudioTranscriptionWord[newAssociatedSegment.transcribedWords.first] = [];
+      }
+      _wordAlignmentSegmentsByAudioTranscriptionWord[newAssociatedSegment.transcribedWords.first]!.add(newAssociatedSegment);
+    }
+    // Poblar el mapa por indice
+    if (audioTranscriptionIndex != null) {
+      _wordAlignmentSegmentsByAudioTranscriptionIndex[audioTranscriptionIndex] = newAssociatedSegment;
+    }
+  }
+*/
   void _createAndAddWordAlignmentSegment(Segment segment, int referenceIndex, int? transcribedIndex) {
     print("_createAndAddWordAlignmentSegment - Inicio");
     // Buscar el segmento asociado anterior

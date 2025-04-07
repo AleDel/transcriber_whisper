@@ -241,7 +241,6 @@ class Transcription {
 
   void associateWords() {
     print("associateWords - Inicio");
-
     // Asociar las palabras
     _associateWords();
 
@@ -250,10 +249,8 @@ class Transcription {
     int unassociatedWordCount = unassociatedWords.length;
     print("associateWords - Palabras no asociadas en el texto de referencia antes de addUnassociatedInsertions(): $unassociatedWordCount");
     print("associateWords - Lista de palabras no asociadas en el texto de referencia antes de addUnassociatedInsertions(): $unassociatedWords");
-
     // Añadir las inserciones no asociadas
     addUnassociatedInsertions();
-
     print("associateWords - Fin");
   }
 
@@ -310,11 +307,7 @@ class Transcription {
             rawRealOrder: referenceSegment.rawRealOrder,
           );
           // Añadir el segmento a la lista de segmentos asociados
-          if (exactMatchSegment.transcribedIndex != null) {
-            _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, exactMatchSegment.transcribedIndex);
-          } else {
-            print("_associateWords - Error: exactMatchSegment.transcribedIndex es null para ${exactMatchSegment.word}");
-          }
+          _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, exactMatchSegment.transcribedIndex);
         } else {
           // Buscar la palabra más parecida en la transcripción
           Segment? closestSegment;
@@ -328,53 +321,25 @@ class Transcription {
             }
           }
           if (closestSegment != null) {
-            // Verificar si la palabra ya está asociada
-            bool isAssociated = wordAlignmentSegments.any((element) => element.transcribedIndex == closestSegment?.transcribedIndex);
-            if (!isAssociated) {
-              // Crear un nuevo segmento para la palabra asociada
-              Segment newAssociatedSegment = Segment(
-                start: closestSegment.start,
-                end: closestSegment.end,
-                word: closestSegment.word,
-                probability: closestSegment.probability,
-                realWord: referenceSegment.word,
-                transcribedWords: [closestSegment.word],
-                transcribedWordsProbabilities: [closestSegment.probability],
-                associationType: minDistance == 0 ? AssociationType.coincidence : AssociationType.similar,
-                levenshteinDistance: minDistance,
-                realIndex: referenceIndex,
-                transcribedIndex: closestSegment.transcribedIndex,
-                transcribedOrder: closestSegment.transcribedOrder,
-                realOrder: referenceIndex,
-                rawRealOrder: referenceSegment.rawRealOrder,
-              );
-              // Añadir el segmento a la lista de segmentos asociados
-              if (closestSegment.transcribedIndex != null) {
-                _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, closestSegment.transcribedIndex);
-              } else {
-                print("_associateWords - Error: closestSegment.transcribedIndex es null para ${closestSegment.word}");
-              }
-            } else {
-              print("_associateWords - La palabra parecida ${closestSegment.word} ya está asociada");
-              // Añadir a la lista de palabras eliminadas potenciales
-              Segment newDeletedSegment = Segment(
-                start: referenceSegment.start,
-                end: referenceSegment.end,
-                word: referenceSegment.word,
-                probability: referenceSegment.probability,
-                realWord: referenceSegment.word,
-                transcribedWords: [],
-                transcribedWordsProbabilities: [],
-                associationType: AssociationType.deleted,
-                levenshteinDistance: 0,
-                realIndex: referenceIndex,
-                transcribedIndex: null,
-                transcribedOrder: null,
-                realOrder: referenceIndex,
-                rawRealOrder: referenceSegment.rawRealOrder,
-              );
-              potentialDeletedWords.add(newDeletedSegment);
-            }
+            // Crear un nuevo segmento para la palabra asociada
+            Segment newAssociatedSegment = Segment(
+              start: closestSegment.start,
+              end: closestSegment.end,
+              word: closestSegment.word,
+              probability: closestSegment.probability,
+              realWord: referenceSegment.word,
+              transcribedWords: [closestSegment.word],
+              transcribedWordsProbabilities: [closestSegment.probability],
+              associationType: minDistance == 0 ? AssociationType.coincidence : AssociationType.similar,
+              levenshteinDistance: minDistance,
+              realIndex: referenceIndex,
+              transcribedIndex: closestSegment.transcribedIndex,
+              transcribedOrder: closestSegment.transcribedOrder,
+              realOrder: referenceIndex,
+              rawRealOrder: referenceSegment.rawRealOrder,
+            );
+            // Añadir el segmento a la lista de segmentos asociados
+            _createAndAddWordAlignmentSegment(newAssociatedSegment, referenceIndex, closestSegment.transcribedIndex);
           } else {
             print("_associateWords - No se ha encontrado palabra parecida para: ${referenceSegment.word} en el indice $referenceIndex");
             // Añadir a la lista de palabras eliminadas potenciales
@@ -408,7 +373,7 @@ class Transcription {
       int minDistance = 1000;
       // Calcular el rango de búsqueda
       int searchRangeStart = deletedWord.realIndex! - 2;
-      int searchRangeEnd= deletedWord.realIndex! + 2;
+      int searchRangeEnd = deletedWord.realIndex! + 2;
       if (searchRangeStart < 0) {
         searchRangeStart = 0;
       }
@@ -447,12 +412,7 @@ class Transcription {
           rawRealOrder: deletedWord.rawRealOrder,
         );
         // Añadir el segmento a la lista de segmentos asociados
-        if (closestSegment.transcribedIndex != null) {
-          // Todo revisar deletedWord.realIndex! podria ser null?
-          _createAndAddWordAlignmentSegment(newAssociatedSegment, deletedWord.realIndex!, closestSegment.transcribedIndex);
-        } else {
-          print("_associateWords - Error: closestSegment.transcribedIndex es null para ${closestSegment.word}");
-        }
+        _createAndAddWordAlignmentSegment(newAssociatedSegment, deletedWord.realIndex, closestSegment.transcribedIndex);
       } else {
         print("_associateWords - No se ha encontrado palabra parecida para la palabra eliminada: ${deletedWord.word}");
       }
@@ -460,37 +420,108 @@ class Transcription {
     print("_associateWords - Fin");
   }
 
-  void _createAndAddWordAlignmentSegment(Segment segment, int referenceIndex, int? transcribedIndex) {
-    print("_createAndAddWordAlignmentSegment - Inicio");
-    // Buscar el segmento asociado anterior
-    Segment? previousAssociatedSegment;
-    for (int i = referenceIndex - 1; i >= 0; i--) {
-      previousAssociatedSegment = wordAlignmentSegments.firstWhereOrNull((element) => element.realIndex == i);
-      if (previousAssociatedSegment != null) {
-        break;
+  void _createAndAddWordAlignmentSegment(Segment newAssociatedSegment, int? referenceIndex, int? audioTranscriptionIndex) {
+    // Verificar si la palabra real o la palabra transcrita ya están asociadas
+    if (wordAlignmentSegments.any((element) => element.realIndex == referenceIndex || element.transcribedIndex == audioTranscriptionIndex)) {
+      if (wordAlignmentSegments.any((element) => element.realIndex == referenceIndex)) {
+        print("_createAndAddWordAlignmentSegment - La palabra real ${newAssociatedSegment.realWord} ya está asociada en el indice $referenceIndex. No se asocia");
       }
-    }
-    // Buscar el segmento asociado posterior
-    Segment? nextAssociatedSegment;
-    for (int i = referenceIndex + 1; i < referenceTextSegments.length; i++) {
-      nextAssociatedSegment = wordAlignmentSegments.firstWhereOrNull((element) => element.realIndex == i);
-      if (nextAssociatedSegment != null) {
-        break;
+      if (wordAlignmentSegments.any((element) => element.transcribedIndex == audioTranscriptionIndex)) {
+        print(
+          "_createAndAddWordAlignmentSegment - La palabra transcrita ${newAssociatedSegment.transcribedWords.first} ya está asociada en el indice $audioTranscriptionIndex. No se asocia",
+        );
       }
+      return;
     }
-    // Calcular la posición de inserción
-    int insertIndex = 0;
-    if (previousAssociatedSegment != null) {
-      insertIndex = wordAlignmentSegments.indexOf(previousAssociatedSegment) + 1;
-    } else if (nextAssociatedSegment != null) {
-      insertIndex = wordAlignmentSegments.indexOf(nextAssociatedSegment);
-    } else {
-      insertIndex = wordAlignmentSegments.length;
+    // Añadir el segmento a associatedSegments
+    wordAlignmentSegments.add(newAssociatedSegment);
+    // Poblar el mapa
+    if (newAssociatedSegment.transcribedWords.isNotEmpty) {
+      if (!_wordAlignmentSegmentsByAudioTranscriptionWord.containsKey(newAssociatedSegment.transcribedWords.first)) {
+        _wordAlignmentSegmentsByAudioTranscriptionWord[newAssociatedSegment.transcribedWords.first] = [];
+      }
+      _wordAlignmentSegmentsByAudioTranscriptionWord[newAssociatedSegment.transcribedWords.first]!.add(newAssociatedSegment);
     }
-    // Insertar en la posición correcta
-    wordAlignmentSegments.insert(insertIndex, segment);
-    print("_createAndAddWordAlignmentSegment - Fin");
+    // Poblar el mapa por indice
+    if (audioTranscriptionIndex != null) {
+      _wordAlignmentSegmentsByAudioTranscriptionIndex[audioTranscriptionIndex] = newAssociatedSegment;
+    }
   }
+
+  /*void _insertPunctuation() {
+    print("_insertPunctuation - Inicio");
+    List<Segment> newSegments = [];
+    for (Segment punctuationSegment in referenceTextPunctuationSegments) {
+      // Buscar el segmento asociado en wordAlignmentSegments
+      Segment? associatedSegment = wordAlignmentSegments.firstWhereOrNull(
+              (element) => element.rawRealOrder == punctuationSegment.rawRealOrder! - 1);
+      // Crear el segmento de auto-asociación
+      Segment newPunctuationSegment = Segment(
+        start: 0.0, // Valor por defecto
+        end: 0.0, // Valor por defecto
+        word: punctuationSegment.word, // La palabra es el signo de puntuación
+        probability: 1.0, // Probabilidad alta por ser auto-asociación
+        realWord: punctuationSegment.word, // La palabra real es el signo de puntuación
+        transcribedWords: [], // No hay palabras transcritas asociadas
+        transcribedWordsProbabilities: [], // No hay probabilidades asociadas
+        associationType: AssociationType.punctuation, // Tipo de asociación: Puntuación
+        levenshteinDistance: 0, // Distancia de Levenshtein: 0
+        realIndex: null, // No hay índice real
+        transcribedIndex: null, // No hay índice transcrito
+        transcribedOrder: null, // Asignar transcribedOrder
+        realOrder: null, // Orden real
+        isPunctuation: true, // Es un signo de puntuación
+        rawRealOrder: punctuationSegment.rawRealOrder,
+      );
+      // Insertar el segmento en la posición correcta
+      int insertIndex = 0;
+      if (associatedSegment != null) {
+        insertIndex = wordAlignmentSegments.indexOf(associatedSegment) + 1;
+        newPunctuationSegment = newPunctuationSegment.copyWith(start: associatedSegment.end, end: associatedSegment.end);
+      } else {
+        // Si no hay segmento asociado, insertar al principio o al final
+        if (punctuationSegment.rawRealOrder! < wordAlignmentSegments.first.rawRealOrder!) {
+          insertIndex = 0;
+          newPunctuationSegment = newPunctuationSegment.copyWith(start: wordAlignmentSegments.first.start, end: wordAlignmentSegments.first.start);
+        } else {
+          insertIndex = wordAlignmentSegments.length;
+          newPunctuationSegment = newPunctuationSegment.copyWith(start: wordAlignmentSegments.last.end, end: wordAlignmentSegments.last.end);
+        }
+      }
+      newSegments.add(newPunctuationSegment);
+    }
+    // Insertar los nuevos segmentos en la posición correcta
+    for (Segment newSegment in newSegments) {
+      // Buscar el segmento asociado anterior
+      Segment? previousAssociatedSegment;
+      for (int i = newSegment.rawRealOrder! - 1; i >= 0; i--) {
+        previousAssociatedSegment = wordAlignmentSegments.firstWhereOrNull((element) => element.rawRealOrder == i);
+        if (previousAssociatedSegment != null) {
+          break;
+        }
+      }
+      // Buscar el segmento asociado posterior
+      Segment? nextAssociatedSegment;
+      for (int i = newSegment.rawRealOrder! + 1; i < referenceTextSegments.length; i++) {
+        nextAssociatedSegment = wordAlignmentSegments.firstWhereOrNull((element) => element.rawRealOrder == i);
+        if (nextAssociatedSegment != null) {
+          break;
+        }
+      }
+      // Calcular la posición de inserción
+      int insertIndex = 0;
+      if (previousAssociatedSegment != null) {
+        insertIndex = wordAlignmentSegments.indexOf(previousAssociatedSegment) + 1;
+      } else if (nextAssociatedSegment != null) {
+        insertIndex = wordAlignmentSegments.indexOf(nextAssociatedSegment);
+      } else {
+        insertIndex = wordAlignmentSegments.length;
+      }
+      // Insertar en la posición correcta
+      wordAlignmentSegments.insert(insertIndex, newSegment);
+    }
+    print("_insertPunctuation - Fin");
+  }*/
 
   void _insertPunctuation() {
     print("_insertPunctuation - Inicio");
@@ -659,3 +690,115 @@ class Transcription {
     print("addUnassociatedInsertions - Fin");
   }
 }
+
+/*Transcription.fromListMap({
+    required List<Map<String, dynamic>> listMap,
+    bool generateAudioTranscriptionSegments = true,
+    bool generateReferenceTextSegments = true,
+    bool generateWordAlignmentSegments = true,
+    bool generateRawReferenceTextSegments = true,
+    String? referenceText,
+    this.shouldInsertPunctuation = false, // Nuevo parámetro
+  }) {
+    print("listMap --> $listMap");
+    this.referenceText = referenceText;
+    if (generateAudioTranscriptionSegments) {
+      for (Map<String, dynamic> map in listMap) {
+        double start = map.containsKey('start') && map['start'] is double ? map['start'] : 0.0;
+        double end = map.containsKey('end') && map['end'] is double ? map['end'] : 0.0;
+        String text = map.containsKey('word') && map['word'] is String ? map['word'] : "";
+        double probability = map.containsKey('probability') && map['probability'] is double ? map['probability'] : 1.0;
+        audioTranscriptionSegments.add(
+          Segment(start: start, end: end, word: text, probability: probability, transcribedOrder: audioTranscriptionSegments.length, associationType: AssociationType.none),
+        );
+        audioTranscriptionWords.add(text);
+      }
+      audioTranscriptionWords = audioTranscriptionWords.map((e) => e.toLowerCase().trim()).toList();
+      audioTranscriptionWords = audioTranscriptionWords.where((element) => element.isNotEmpty).toList();
+    }
+    if (generateReferenceTextSegments && referenceText != null) {
+      rawReferenceTextSegments = createRawReferenceTextSegments(referenceText);
+      referenceTextWords = referenceText.split(' ');
+      int start = 0;
+      int referenceOrder = 0;
+      for (int i = 0; i < referenceTextWords.length; i++) {
+        String writtenWord = referenceTextWords[i];
+        int end = start + writtenWord.length;
+        Segment segment = Segment(
+          start: start.toDouble(),
+          end: end.toDouble(),
+          word: writtenWord,
+          probability: 1.0,
+          realOrder: referenceOrder,
+          rawRealOrder: i,
+          associationType: AssociationType.none,
+        );
+        referenceTextSegments.add(segment);
+        // Poblar el mapa
+        if (!_referenceSegmentsByWord.containsKey(writtenWord)) {
+          _referenceSegmentsByWord[writtenWord] = [];
+        }
+        _referenceSegmentsByWord[writtenWord]!.add(segment);
+        // Poblar el mapa por indice
+        _referenceSegmentsByIndex[referenceOrder] = segment;
+        start = end + 1; // +1 para el espacio en blanco
+        referenceOrder++;
+      }
+      // Crear la lista de signos de puntuacion
+      referenceTextPunctuationSegments = rawReferenceTextSegments.where((element) => element.isPunctuation == true).toList();
+      // Eliminar los signos de puntuación de referenceTextWords y referenceTextSegments
+      referenceTextWords.removeWhere((word) => [".", ",", ":", ";", "!", "?"].contains(word));
+      referenceTextSegments.removeWhere((segment) => [".", ",", ":", ";", "!", "?"].contains(segment.word));
+      // Eliminar las referencias a la puntuación de _referenceSegmentsByIndex y _referenceSegmentsByWord
+      _referenceSegmentsByIndex.removeWhere((key, value) => value.isPunctuation);
+      _referenceSegmentsByWord.removeWhere((key, value) => value.any((element) => element.isPunctuation));
+    }
+    if (generateWordAlignmentSegments) {
+      wordAlignmentSegments = [];
+      associateWords();
+      if (shouldInsertPunctuation) {
+        _insertPunctuation();
+      }
+    }
+  }*/
+/*List<Segment> createRawReferenceTextSegments(String? referenceText) {
+    print("createRawReferenceTextSegments - Inicio");
+    List<Segment> segments = [];
+    if (referenceText == null) return segments;
+    String currentWord = "";
+    double start = 0.0;
+    double end = 0.0;
+    int index = 0;
+    for (int i = 0; i < referenceText.length; i++) {
+      String char = referenceText[i];
+      if (char == " " || char == "\n" || [".", ",", ":", ";", "!", "?"].contains(char)) {
+        if (currentWord.isNotEmpty) {
+          end = start + currentWord.length;
+          segments.add(Segment(start: start, end: end, word: currentWord, probability: 1.0, rawRealOrder: index, associationType: AssociationType.none));
+          index++;
+          currentWord = "";
+          start = end + 1;
+        }
+        if ([".", ",", ":", ";", "!", "?"].contains(char)) {
+          end = start + char.length;
+          segments.add(Segment(start: start, end: end, word: char, probability: 1.0, associationType: AssociationType.punctuation, isPunctuation: true, rawRealOrder: index));
+          index++;
+          start = end + 1;
+        }
+        if (char == "\n") {
+          end = start + 1;
+          segments.add(Segment(start: start, end: end, word: "¶", probability: 1.0, rawRealOrder: index, associationType: AssociationType.none));
+          index++;
+          start = end + 1;
+        }
+      } else {
+        currentWord += char;
+      }
+    }
+    if (currentWord.isNotEmpty) {
+      end = start + currentWord.length;
+      segments.add(Segment(start: start, end: end, word: currentWord, probability: 1.0, rawRealOrder: index, associationType: AssociationType.none));
+    }
+    print("createRawReferenceTextSegments - Fin");
+    return segments;
+  }*/
