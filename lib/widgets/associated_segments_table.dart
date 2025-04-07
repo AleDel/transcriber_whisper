@@ -31,6 +31,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
   final TextEditingController _realTextEditingController = TextEditingController();
   final TextEditingController _transcriptionTextEditingController = TextEditingController();
   final TextEditingController _associatedTextEditingController = TextEditingController();
+  final TextEditingController _realTextFormattedEditingController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
   GetIt getIt = GetIt.instance;
@@ -88,6 +89,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
     _realTextEditingController.dispose();
     _transcriptionTextEditingController.dispose();
     _associatedTextEditingController.dispose();
+    _realTextFormattedEditingController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -96,9 +98,11 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
   Widget build(BuildContext context) {
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        //_realTextEditingController.text = state.transcription?.realTextWords?.join(" ").trim() ?? "";
+        //_realTextFormattedEditingController.text = state.transcription?.realTextWords?.join(" ").trim() ?? "";
+        //_realTextFormattedEditingController.text = state.transcription?.referenceTextSegments.join(" ").trim() ?? "";
+        _realTextFormattedEditingController.text = state.transcription?.referenceText ?? "";
         // Inicializar los TextField con el texto real y el texto transcrito
-      _realTextEditingController.text =
+        _realTextEditingController.text =
             widget.realTextSegments
                 ?.asMap()
                 .entries
@@ -169,6 +173,16 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                     ),
                     Expanded(
                       child: TextField(
+                        controller: _realTextFormattedEditingController,
+                        maxLines: 5,
+                        onChanged: (string) {
+                          setState(() {});
+                        },
+                        decoration: InputDecoration(labelText: "Real Text Formatted", fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0))),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
                         controller: _associatedTextEditingController,
                         maxLines: 5,
                         onChanged: (string) {
@@ -198,9 +212,20 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                   },
                 ),
               ),
-              SizedBox(height: 100, child: RealTextDisplayWidget(transcription: state.transcription!, audioPosition: Duration(), currentWordIndex: 0, onWordTap: (int index) {getIt<TranscriptionCubit>().forceCurrentWord(index);})),
+              SizedBox(
+                height: 100,
+                child: RealTextDisplayWidget(
+                  transcription: state.transcription!,
+                  audioPosition: Duration(),
+                  currentWordIndex: 0,
+                  onWordTap: (int index) {
+                    getIt<TranscriptionCubit>().forceCurrentWord(index);
+                  },
+                ),
+              ),
               // Nuevo: Row para los dos widgets
-              SizedBox(height: 500,
+              SizedBox(
+                height: 500,
                 child: Row(
                   children: [
                     Expanded(
