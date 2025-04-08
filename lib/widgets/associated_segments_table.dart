@@ -98,8 +98,6 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
   Widget build(BuildContext context) {
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        //_realTextFormattedEditingController.text = state.transcription?.realTextWords?.join(" ").trim() ?? "";
-        //_realTextFormattedEditingController.text = state.transcription?.referenceTextSegments.join(" ").trim() ?? "";
         _realTextFormattedEditingController.text = state.transcription?.referenceText ?? "";
         // Inicializar los TextField con el texto real y el texto transcrito
         _realTextEditingController.text =
@@ -178,7 +176,11 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                         onChanged: (string) {
                           setState(() {});
                         },
-                        decoration: InputDecoration(labelText: "Real Text Formatted", fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0))),
+                        decoration: InputDecoration(
+                          labelText: "Real Text Formatted",
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                        ),
                       ),
                     ),
                     Expanded(
@@ -233,6 +235,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                         padding: const EdgeInsets.all(16.0),
                         child: HighlightedRealTextWidget(
                           currentWordIndex: state.extradata?.currentAssociatedWordIndex ?? -1,
+                          //currentWordIndex: state.extradata?.currentWordIndex ?? -1,
                           onWordTap: (index) {
                             print("onWordTap: HighlightedRealTextWidget --> $index");
                             getIt<TranscriptionCubit>().forceCurrentWord(index);
@@ -243,6 +246,9 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                           onShowAssociatedWordsChanged: (bool value) {},
                           onShowOnlyDifferentWordsChanged: (bool value) {},
                           onHighlightDifferencesChanged: (bool value) {},
+                          onHighlightDeletedWordsChanged: (bool value) {},
+                          onShowOnlyInsertionsChanged: (bool value) {},
+                          onShowInsertionsAndDeletionsWithArrowsChanged: (bool value) {},
                         ),
                       ),
                     ),

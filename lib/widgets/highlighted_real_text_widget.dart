@@ -15,9 +15,15 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
   final bool showAssociatedWords;
   final bool showOnlyDifferentWords;
   final bool highlightDifferences;
+  final bool highlightDeletedWords;
+  final bool showOnlyInsertions; // New filter
+  final bool showInsertionsAndDeletionsWithArrows; // New filter
   final ValueChanged<bool> onShowAssociatedWordsChanged;
   final ValueChanged<bool> onShowOnlyDifferentWordsChanged;
   final ValueChanged<bool> onHighlightDifferencesChanged;
+  final ValueChanged<bool> onHighlightDeletedWordsChanged;
+  final ValueChanged<bool> onShowOnlyInsertionsChanged; // New callback
+  final ValueChanged<bool> onShowInsertionsAndDeletionsWithArrowsChanged; // New callback
 
   const HighlightedRealTextWidget({
     Key? key,
@@ -32,14 +38,22 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
     this.showAssociatedWords = false,
     this.showOnlyDifferentWords = false,
     this.highlightDifferences = false,
+    this.highlightDeletedWords = true,
+    this.showOnlyInsertions = false, // Default to false
+    this.showInsertionsAndDeletionsWithArrows = false, // Default to false
     required this.onShowAssociatedWordsChanged,
     required this.onShowOnlyDifferentWordsChanged,
     required this.onHighlightDifferencesChanged,
+    required this.onHighlightDeletedWordsChanged,
+    required this.onShowOnlyInsertionsChanged, // New callback
+    required this.onShowInsertionsAndDeletionsWithArrowsChanged, // New callback
   }) : super(key: key);
 
   @override
   State<HighlightedRealTextWidget> createState() => _HighlightedRealTextWidgetState();
-}class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<HighlightedRealTextWidget> {
+}
+
+class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<HighlightedRealTextWidget> {
   int? _selectionStart;
   int? _selectionEnd;
   final double zoom = 100;
@@ -47,6 +61,9 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
   late bool _internalShowAssociatedWords;
   late bool _internalShowOnlyDifferentWords;
   late bool _internalHighlightDifferences;
+  late bool _internalHighlightDeletedWords;
+  late bool _internalShowOnlyInsertions; // New state variable
+  late bool _internalShowInsertionsAndDeletionsWithArrows; // New state variable
   final GlobalKey _currentWordKey = GlobalKey();
 
   @override
@@ -55,6 +72,9 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
     _internalShowAssociatedWords = widget.showAssociatedWords;
     _internalShowOnlyDifferentWords = widget.showOnlyDifferentWords;
     _internalHighlightDifferences = widget.highlightDifferences;
+    _internalHighlightDeletedWords = widget.highlightDeletedWords;
+    _internalShowOnlyInsertions = widget.showOnlyInsertions; // Initialize
+    _internalShowInsertionsAndDeletionsWithArrows = widget.showInsertionsAndDeletionsWithArrows; // Initialize
   }
 
   @override
@@ -62,7 +82,7 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
     super.didUpdateWidget(oldWidget);
     if (widget.currentWordIndex != oldWidget.currentWordIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        scrollToCurrentWord();
+        //scrollToCurrentWord();
       });
     }
   }
@@ -96,36 +116,72 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
       baseStyle = widget.nextWordStyle;
     }
 
+    // Apply red color if "Highlight Differences" is active and it's not a coincidence
     if (_internalHighlightDifferences && segment.associationType != AssociationType.coincidence) {
       baseStyle = baseStyle.copyWith(color: Colors.red);
     }
+
     return baseStyle;
-  }List<Widget> _buildFormattedText(List<Segment> associatedSegments, int effectiveCurrentWordIndex) {
+  }
+
+  List<Widget> _buildFormattedText(List<Segment> associatedSegments, int effectiveCurrentWordIndex) {
     List<Widget> formattedTextWidgets = [];
     List<Widget> paragraphWidgets = [];
     for (int i = 0; i < associatedSegments.length; i++) {
       final segment = associatedSegments[i];
 
-      // Nueva lógica de filtrado
-      if (!_internalShowAssociatedWords && !_internalShowOnlyDifferentWords && !_internalHighlightDifferences) {
-        if (segment.associationType != AssociationType.coincidence &&
-            segment.associationType != AssociationType.similar &&
-            segment.associationType != AssociationType.punctuation) {
-          continue; // Saltar este segmento si no es coincidencia, similar o puntuación
-        }
+      // Filter logic
+      if ((!_internalShowAssociatedWords &&
+          !_internalShowOnlyDifferentWords &&
+          !_internalHighlightDifferences &&
+          !_internalHighlightDeletedWords &&
+          !_internalShowOnlyInsertions &&
+          !_internalShowInsertionsAndDeletionsWithArrows) &&
+          (segment.associationType != AssociationType.coincidence &&
+              segment.associationType != AssociationType.deleted &&
+              segment.associationType != AssociationType.punctuation)) {
+        // Skip this segment if it's not a coincidence, deleted, or punctuation and no filter is active
+        continue;
+      }
+      // Filter logic for "Highlight Deleted Words"
+      if (_internalHighlightDeletedWords &&
+          segment.associationType != AssociationType.deleted &&
+          segment.associationType != AssociationType.coincidence &&
+          segment.associationType != AssociationType.punctuation) {
+        // Skip if it's not a deletion
+        continue;
+      }
+      // Filter logic for "Show Only Insertions"
+      if (_internalShowOnlyInsertions &&
+          segment.associationType != AssociationType.inserted &&
+          segment.associationType != AssociationType.coincidence &&
+          segment.associationType != AssociationType.punctuation) {
+        // Skip if it's not an insertion
+        continue;
       }
 
-      // Si es un salto de párrafo, agregar el párrafo actual y comenzar uno nuevo
+      // Filter logic for "Show Insertions and Deletions with Arrows"
+      if (_internalShowInsertionsAndDeletionsWithArrows &&
+          segment.associationType != AssociationType.inserted &&
+          segment.associationType != AssociationType.deleted &&
+          segment.associationType != AssociationType.coincidence &&
+          segment.associationType != AssociationType.punctuation) {
+        // Skip if it's not an insertion or deletion
+        continue;
+      }
+      // **Paragraph Break Check (Moved After Filters)**
       if (segment.word == "\n\n") {
         if (paragraphWidgets.isNotEmpty) {
           formattedTextWidgets.add(Wrap(children: paragraphWidgets));
-          formattedTextWidgets.add(const SizedBox(height: 26)); // Separación entre párrafos
+          formattedTextWidgets.add(const SizedBox(height: 76)); // Separación entre párrafos
           paragraphWidgets = [];
         }
-        continue;
+        continue; // Skip to the next segment
       }
+
       // Actualizar el índice de la última palabra válida
       _lastValidCurrentWordIndex = i;
+
       // Mostrar la palabra asociada si no hay coincidencia y si está activado
       Widget? associatedWordWidget;
       if (_internalShowAssociatedWords && (_internalShowOnlyDifferentWords ? segment.associationType != AssociationType.coincidence : true)) {
@@ -133,11 +189,7 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
         if (transcribedWords?.isNotEmpty == true) {
           associatedWordWidget = Wrap(
             children: transcribedWords!.map((word) {
-              final index = transcribedWords.indexOf(word);
-              final probability = (segment.transcribedWordsProbabilities?.isNotEmpty == true && index < (segment.transcribedWordsProbabilities?.length ?? 0))
-                  ? segment.transcribedWordsProbabilities![index]
-                  : 0.0;
-              return Chip(key: ValueKey(word), label: Text('$word (${probability.toStringAsFixed(2)})'));
+              return Text(word, style: const TextStyle(color: Colors.grey, fontSize: 12.0));
             }).toList(),
           );
         } else {
@@ -163,8 +215,16 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
         mainWordWidget = const Icon(Icons.arrow_downward, size: 20, color: Colors.green);
         additionalWidget = Text(segment.word, style: const TextStyle(color: Colors.green));
       } else if (segment.associationType == AssociationType.deleted) {
-        mainWordWidget = const Icon(Icons.arrow_upward, size: 20, color: Colors.red);
-        additionalWidget = Text(segment.realWord ?? "", style: const TextStyle(color: Colors.red, decoration: TextDecoration.lineThrough));
+        // Show the deleted word with the default style
+        mainWordWidget = Text(
+          segment.realWord ?? "",
+          style: _getWordTextStyle(segment, segmentIndex, effectiveCurrentWordIndex).copyWith(color: _internalHighlightDeletedWords ? Colors.red : null),
+        );
+        additionalWidget = null;
+        if (_internalShowInsertionsAndDeletionsWithArrows) {
+          mainWordWidget = const Icon(Icons.arrow_upward, size: 20, color: Colors.red);
+          additionalWidget = Text(segment.realWord ?? "", style: const TextStyle(color: Colors.red, decoration: TextDecoration.lineThrough));
+        }
       } else {
         mainWordWidget = Text(segment.realWord ?? segment.word, style: _getWordTextStyle(segment, segmentIndex, effectiveCurrentWordIndex));
         additionalWidget = null;
@@ -172,61 +232,60 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
       // Agregar el segmento al párrafo
       paragraphWidgets.add(
           GestureDetector(
-          key: isCurrentWord ? _currentWordKey : null,
-          onTap: () {
-        // Aquí se llama a forceCurrentWord con el índice de la palabra asociada
-        // Pero primero, necesitamos encontrar el segmento correspondiente en audioTranscriptionSegments
-        if(widget.transcription.audioTranscriptionSegments != null){
-          int indexInAudioTranscriptionSegments = -1;
-          if (segment.associationType == AssociationType.punctuation) {
-            final segmentToFind = associatedSegments[i - 1];
-            for (int j = 0; j < widget.transcription.audioTranscriptionSegments.length; j++) {
-              final audioSegment = widget.transcription.audioTranscriptionSegments[j];
-              if (audioSegment.start == segmentToFind.start && audioSegment.end == segmentToFind.end) {
-                indexInAudioTranscriptionSegments = j;
-                break;
-              }
-            }
-          } else {
-            for (int j = 0; j < widget.transcription.audioTranscriptionSegments.length; j++) {
-              final audioSegment = widget.transcription.audioTranscriptionSegments[j];
-              if (audioSegment.start == segment.start && audioSegment.end == segment.end) {
-                indexInAudioTranscriptionSegments = j;
-                break;
-              }
-            }
-          }
-          if (indexInAudioTranscriptionSegments != -1) {
-            widget.onWordTap(indexInAudioTranscriptionSegments);
-          }
-        }
+              key: isCurrentWord ? _currentWordKey : null,
+              onTap: () {
+                // Aquí se llama a forceCurrentWord con el índice de la palabra asociada
+                // Pero primero, necesitamos encontrar el segmento correspondiente en audioTranscriptionSegments
+                if (widget.transcription.audioTranscriptionSegments != null) {
+                  int indexInAudioTranscriptionSegments = -1;
+                  if (segment.associationType == AssociationType.punctuation) {
+                    // Handle punctuation
+                    if (i > 0) {
+                      final segmentToFind = associatedSegments[i - 1];
+                      for (int j = 0; j < widget.transcription.audioTranscriptionSegments.length; j++) {
+                        final audioSegment = widget.transcription.audioTranscriptionSegments[j];
+                        if (audioSegment.start == segmentToFind.start && audioSegment.end == segmentToFind.end) {
+                          indexInAudioTranscriptionSegments = j;
+                          break;
+                        }
+                      }
+                    }
+                  } else {
+                    // Handle non-punctuation
+                    for (int j = 0; j < widget.transcription.audioTranscriptionSegments.length; j++) {
+                      final audioSegment = widget.transcription.audioTranscriptionSegments[j];
+                      if (audioSegment.start == segment.start && audioSegment.end == segment.end) {
+                        indexInAudioTranscriptionSegments = j;
+                        break;
+                      }
+                    }
+                  }
+                  if (indexInAudioTranscriptionSegments != -1) {
+                    widget.onWordTap(indexInAudioTranscriptionSegments);
+                  }
+                }
+              },
+              onSecondaryTapDown: (details) {
+                super.showContextMenu(details.globalPosition, wordIndexes: [segmentIndex]);
+              },
+              onLongPressStart: (details) {
+                setState(() {
+                  _selectionStart = segmentIndex;
+                  _selectionEnd = segmentIndex;
+                });
+              },
+              onLongPressMoveUpdate: (details) {},
+              onLongPressEnd: (details) {
+                final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
+                final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
+                final List<int> selectedIndexes = List.generate(upper - lower + 1, (j) => lower + j);
+                super.showContextMenu(details.globalPosition, wordIndexes: selectedIndexes);
+              },onLongPressCancel: () {
+            setState(() {
+              _selectionStart = null;
+              _selectionEnd = null;
+            });
           },
-            onSecondaryTapDown: (details) {
-              super.showContextMenu(details.globalPosition, wordIndexes: [segmentIndex]);
-            },
-            onLongPressStart: (details) {
-              setState(() {
-                _selectionStart = segmentIndex;
-                _selectionEnd = segmentIndex;
-              });
-            },
-            onLongPressMoveUpdate: (details) {
-              setState(() {
-                _selectionEnd = segmentIndex;
-              });
-            },
-            onLongPressEnd: (details) {
-              final int lower = _selectionStart! < _selectionEnd! ? _selectionStart! : _selectionEnd!;
-              final int upper = _selectionStart! > _selectionEnd! ? _selectionStart! : _selectionEnd!;
-              final List<int> selectedIndexes = List.generate(upper - lower + 1, (j) => lower + j);
-              super.showContextMenu(details.globalPosition, wordIndexes: selectedIndexes);
-            },
-            onLongPressCancel: () {
-              setState(() {
-                _selectionStart = null;
-                _selectionEnd = null;
-              });
-            },
             child: Column(
               children: [
                 Stack(
@@ -234,10 +293,7 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 12.0),
-                      child: Container(
-                        color: isCurrentWord ? Colors.yellow : _getWordBackgroundColor(segmentIndex, associatedSegments),
-                        child: mainWordWidget,
-                      ),
+                      child: Container(color: isCurrentWord ? Colors.yellow : _getWordBackgroundColor(segmentIndex, associatedSegments), child: mainWordWidget),
                     ),
                     Positioned(
                       top: 2,
@@ -263,7 +319,9 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
       formattedTextWidgets.add(Wrap(children: paragraphWidgets));
     }
     return formattedTextWidgets;
-  }@override
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       buildWhen: (previous, current) {
@@ -277,19 +335,16 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
       },
       builder: (context, state) {
         if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.wordAlignmentSegments!.isEmpty) {
-          return const Center(child: Column(
-            children: [
-              Text('No hay transcripción para mostrar'),
-              LoadingWidget()
-            ],
-          ));
+          return const Center(child: Column(children: [Text('No hay transcripción para mostrar'), LoadingWidget()]));
         }
         if (state.transcription!.referenceText == null || state.transcription!.referenceText!.isEmpty) {
           return const Center(child: Text('No hay texto real para mostrar'));
         }
         final associatedSegments = state.transcription!.wordAlignmentSegments!;
-        //final effectiveCurrentWordIndex = state.extradata?.currentWordIndex == null || state.extradata!.currentWordIndex == -1 ? _lastValidCurrentWordIndex : state.extradata!.currentWordIndex;
-        final effectiveCurrentWordIndex = state.extradata?.currentAssociatedWordIndex == null || state.extradata!.currentAssociatedWordIndex == -1 ? _lastValidCurrentWordIndex : state.extradata!.currentAssociatedWordIndex;
+        final effectiveCurrentWordIndex =
+            state.extradata?.currentAssociatedWordIndex == null || state.extradata!.currentAssociatedWordIndex == -1
+                ? _lastValidCurrentWordIndex
+                : state.extradata!.currentAssociatedWordIndex;
         final formattedTextWidgets = _buildFormattedText(associatedSegments, effectiveCurrentWordIndex);
         return Column(
           children: [
@@ -299,47 +354,100 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(
-                    icon: Icon(_internalShowAssociatedWords ? Icons.visibility : Icons.visibility_off),
+                    icon: Icon(internalAutoScrollEnabled ? Icons.pause : Icons.play_arrow),
                     onPressed: () {
-                      setState(() {
-                        _internalShowAssociatedWords = !_internalShowAssociatedWords;
-                      });
-                      widget.onShowAssociatedWordsChanged(_internalShowAssociatedWords);
+                      setAutoScroll(!internalAutoScrollEnabled);
                     },
                   ),
-                  IconButton(
-                    icon: Icon(_internalShowOnlyDifferentWords ? Icons.filter_alt : Icons.filter_alt_off),
-                    onPressed: () {
-                      setState(() {
-                        _internalShowOnlyDifferentWords = !_internalShowOnlyDifferentWords;
-                      });
-                      widget.onShowOnlyDifferentWordsChanged(_internalShowOnlyDifferentWords);
-                    },
+                  Row(
+                    children: [
+                      const Text("Show Associated Words"),
+                      Switch(
+                        value: _internalShowAssociatedWords,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalShowAssociatedWords = value;
+                          });
+                          widget.onShowAssociatedWordsChanged(value);
+                        },
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(_internalHighlightDifferences ? Icons.text_fields : Icons.format_color_text),
-                    onPressed: () {
-                      setState(() {
-                        _internalHighlightDifferences = !_internalHighlightDifferences;
-                      });
-                      widget.onHighlightDifferencesChanged(_internalHighlightDifferences);
-                    },
+                  /*Row(
+                    children: [
+                      const Text("Show Only Different Words"),
+                      Switch(
+                        value: _internalShowOnlyDifferentWords,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalShowOnlyDifferentWords = value;
+                          });
+                          widget.onShowOnlyDifferentWordsChanged(value);
+                        },
+                      ),
+                    ],
                   ),
+                  Row(
+                    children: [
+                      const Text("Highlight Differences"),
+                      Switch(
+                        value: _internalHighlightDifferences,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalHighlightDifferences = value;
+                          });
+                          widget.onHighlightDifferencesChanged(value);
+                        },
+                      ),
+                    ],
+                  ),*/
+                  Row(
+                    children: [
+                      const Text("Highlight Deleted Words"),
+                      Switch(
+                        value: _internalHighlightDeletedWords,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalHighlightDeletedWords = value;
+                          });
+                          widget.onHighlightDeletedWordsChanged(value);
+                        },
+                      ),
+                    ],
+                  ),
+                  /*Row(
+                    children: [
+                      const Text("Show Only Insertions"), // New switch
+                      Switch(
+                        value: _internalShowOnlyInsertions,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalShowOnlyInsertions = value;
+                          });
+                          widget.onShowOnlyInsertionsChanged(value);
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Text("Show Insertions/Deletions with Arrows"), // New switch
+                      Switch(
+                        value: _internalShowInsertionsAndDeletionsWithArrows,
+                        onChanged: (value) {
+                          setState(() {
+                            _internalShowInsertionsAndDeletionsWithArrows = value;
+                          });
+                          widget.onShowInsertionsAndDeletionsWithArrowsChanged(value);
+                        },
+                      ),
+                    ],
+                  ),*/
                 ],
               ),
             ),
             Expanded(
-              child: CustomScrollView(
-                controller: widget.scrollController,
-                slivers: [
-                  SliverList(delegate: SliverChildListDelegate(formattedTextWidgets.isEmpty ? [Column(
-                    children: [
-                      const Center(child: Text('No hay texto para mostrar')),
-                      LoadingWidget()
-                    ],
-                  )] : formattedTextWidgets)),
-                ],
-              ),
+              child: SingleChildScrollView(controller: widget.scrollController, child: Padding(padding: const EdgeInsets.all(8.0), child: Wrap(children: formattedTextWidgets))),
             ),
           ],
         );
@@ -349,15 +457,13 @@ class HighlightedRealTextWidget extends TranscriptionWidget {
 
   @override
   void scrollToCurrentWord() {
-    /*final state = context.read<TranscriptionCubit>().state;
     if (_currentWordKey.currentContext != null) {
-      final RenderBox box = _currentWordKey.currentContext!.findRenderObject() as RenderBox;
-      final Offset offset = box.localToGlobal(Offset.zero);
-      final double currentWordY = offset.dy;
-      final double screenHeight = MediaQuery.of(context).size.height;
-      final double scrollOffset = widget.scrollController.offset;
-      final double targetScrollOffset = currentWordY - (screenHeight / 2) + (box.size.height / 2);
-      widget.scrollController.animateTo(targetScrollOffset + scrollOffset, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
-    }*/
+      final RenderBox renderBox = _currentWordKey.currentContext!.findRenderObject() as RenderBox;
+      final position = renderBox.localToGlobal(Offset.zero);
+      final double scrollOffset = position.dy - (MediaQuery.of(context).size.height / 2) + (renderBox.size.height / 2);
+      widget.scrollController.animateTo(scrollOffset, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    }
   }
+
+
 }
