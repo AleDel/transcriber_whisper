@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:diff_match_patch/diff_match_patch.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -14,33 +13,10 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/segment_context_menu.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
-import 'package:transcriber_whisper/utils/compare_segments_utils.dart';
 
 import 'mockData/textotest.dart';
 import 'models/alignment_mfa_data.dart';
-import 'models/comparation_model.dart';
-import 'models/patience_diff.dart';
 import 'models/segment.dart';
-import 'models/word_with_spans.dart';
-
-class _BuildWordSpansResult {
-  final List<TextSpan> spans;
-  final DiffType diffType;
-
-  _BuildWordSpansResult({required this.spans, required this.diffType});
-}
-
-/// Representa el resultado de la función [_prepareLists].
-class _PrepareListsResult {
-  /// La nueva lista de palabras transcritas.
-  final List<String> newTransWords;
-
-  /// La nueva lista de palabras reales.
-  final List<String> newRealWords;
-
-  /// Constructor de [_PrepareListsResult].
-  _PrepareListsResult(this.newTransWords, this.newRealWords);
-}
 
 class TranscriptionCubit extends Cubit<TranscriptionState> {
   TranscriptionCubit() : super(const TranscriptionState(status: TranscriptionStatus.initial)) {
@@ -62,7 +38,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   DateTime? _lastForceCurrentWordCall;
   final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 100);
   final int totalSamples = 512;
-  static Map<String, Color> availableTags = {
+/*static Map<String, Color> availableTags = {
     'Omisioa': Colors.grey[300]!,
     'Ordezkapena': Colors.grey[300]!,
     'Asmaketa': Colors.grey[300]!,
@@ -73,7 +49,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     'Jauzia': Colors.grey[300]!,
     'Errepikapena': Colors.grey[300]!,
   };
-  /*static Map<String, Color> availableTags = {
+  static Map<String, Color> availableTags = {
     'Omisioa': Colors.grey[100]!,
     'Ordezkapena': Colors.grey[200]!,
     'Asmaketa': Colors.grey[300]!,
@@ -151,7 +127,7 @@ static Map<String, Color> availableTags = {
     'Inbertsioa': Colors.deepPurple[300]!,
     'Jauzia': Colors.deepPurple[400]!,
     'Errepikapena': Colors.deepPurple[500]!,
-  };
+  };*/
   static Map<String, Color> availableTags = {
     'Omisioa': Colors.blue[200]!,
     'Ordezkapena': Colors.blue[300]!,
@@ -162,7 +138,7 @@ static Map<String, Color> availableTags = {
     'Inbertsioa': Colors.deepPurple[300]!,
     'Jauzia': Colors.deepPurple[400]!,
     'Errepikapena': Colors.deepPurple[500]!,
-  };*/
+  };
   static Map<String, String> tagToSymbol = {
     'Omisioa': '-',
     'Ordezkapena': 'O',
@@ -195,13 +171,14 @@ static Map<String, Color> availableTags = {
     });
   }
 
+  // Inicializa el reproductor de audio
   void initAudioPlayer() {
     audioPlayer.onDurationChanged.listen((Duration d) {
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioDuration: d)));
     });
     audioPlayer.onPositionChanged.listen((Duration p) {
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioPosition: p)));
-      updateCurrentWord();
+      updateCurrentWord(); // Actualiza la palabra actual cuando cambia la posición
     });
     audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
       if (s == PlayerState.playing) {
@@ -594,9 +571,11 @@ static Map<String, Color> availableTags = {
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
   }*/
 
+  // Actualiza la palabra actual basándose en la posición del audio
   void updateCurrentWord() {
+    print("-- updateCurrentWord --");
     if (state.transcription == null) return;
-    if (_userSelectedWord) return;
+    if (_userSelectedWord) return; // No actualizar si el usuario ha seleccionado una palabra
     final currentPosition = state.extradata!.audioPosition;
     if (currentPosition == null) return;
     final currentMillis = currentPosition.inMilliseconds;
@@ -613,19 +592,19 @@ static Map<String, Color> availableTags = {
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
   }
 
-
+  // Fuerza la palabra actual a un índice específico (cuando el usuario hace clic)
   void forceCurrentWord(int index) {
     if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
     final now = DateTime.now();
     if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      return;
+      return; // Evita llamadas muy seguidas
     }
     _lastForceCurrentWordCall = now;
-    _userSelectedWord = true;
+    _userSelectedWord = true; // Indicar que el usuario ha seleccionado una palabra
     final segment = state.transcription!.audioTranscriptionSegments[index];
     final startMillis = (segment.start * 1000).toInt();
     final endMillis = (segment.end * 1000).toInt();
-    audioPlayer.seek(Duration(milliseconds: startMillis));
+    audioPlayer.seek(Duration(milliseconds: startMillis)); // Mueve el audio a la posición de la palabra
     // Buscar el indice de la palabra asociada
     int associatedWordIndex = -1;
     if(state.transcription!.wordAlignmentSegments != null){
@@ -641,7 +620,7 @@ static Map<String, Color> availableTags = {
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
 
     if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
-      _wordPlayTimer!.cancel();
+      _wordPlayTimer!.cancel(); // Cancelar el timer anterior si existe
     }
 
     if (state.extradata!.playAndStopWordOnSelect) {
@@ -657,8 +636,48 @@ static Map<String, Color> availableTags = {
     }
 
     Future.delayed(const Duration(milliseconds: 500), () {
-      _userSelectedWord = false;
+      _userSelectedWord = false; // Resetear la variable después de un tiempo
     });
+  }
+
+  // Búsqueda binaria en la lista de segmentos de audio
+  int _binarySearch(List<Segment> segments, int target) {
+    int left = 0;
+    int right = segments.length - 1;
+    while (left <= right) {
+      int mid = left + ((right - left) ~/ 2);
+      final segment = segments[mid];
+      final startMillis = (segment.start * 1000).toInt();
+      final endMillis = (segment.end * 1000).toInt();
+      if (target >= startMillis && target <= endMillis) {
+        return mid; // Encontrado
+      } else if (target < startMillis) {
+        right = mid - 1; // Buscar en la mitad izquierda
+      } else {
+        left = mid + 1; // Buscar en la mitad derecha
+      }
+    }
+    return -1; // No encontrado
+  }
+
+  // Búsqueda binaria en la lista de segmentos alineados con el texto real
+  int _binarySearchAssociated(List<Segment> segments, int target) {
+    int left = 0;
+    int right = segments.length - 1;
+    while (left <= right) {
+      int mid = left + ((right - left) ~/ 2);
+      final segment = segments[mid];
+      final startMillis = (segment.start * 1000).toInt();
+      final endMillis = (segment.end * 1000).toInt();
+      if (target >= startMillis && target <= endMillis) {
+        return mid; // Encontrado
+      } else if (target < startMillis) {
+        right = mid - 1; // Buscar en la mitad izquierda
+      } else {
+        left = mid + 1; // Buscar en la mitad derecha
+      }
+    }
+    return -1; // No encontrado
   }
 
   /*void forceCurrentWord(int index) {
@@ -882,42 +901,7 @@ static Map<String, Color> availableTags = {
     return -1;
   }
 
-  int _binarySearch(List<Segment> segments, int target) {
-    int left = 0;
-    int right = segments.length - 1;
-    while (left <= right) {
-      int mid = left + ((right - left) ~/ 2);
-      final segment = segments[mid];
-      final startMillis = (segment.start * 1000).toInt();
-      final endMillis = (segment.end * 1000).toInt();
-      if (target >= startMillis && target <= endMillis) {
-        return mid;
-      } else if (target < startMillis) {
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-    return -1;
-  }
-  int _binarySearchAssociated(List<Segment> segments, int target) {
-    int left = 0;
-    int right = segments.length - 1;
-    while (left <= right) {
-      int mid = left + ((right - left) ~/ 2);
-      final segment = segments[mid];
-      final startMillis = (segment.start * 1000).toInt();
-      final endMillis = (segment.end * 1000).toInt();
-      if (target >= startMillis && target <= endMillis) {
-        return mid;
-      } else if (target < startMillis) {
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-    return -1;
-  }
+
 
   void _editSegment(BuildContext context, int index) {
     final segment = state.transcription!.rawReferenceTextSegments![index];

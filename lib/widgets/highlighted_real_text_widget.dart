@@ -428,7 +428,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                         },
                       ),
                     ],
-                  ),
+                  ),*/
                   Row(
                     children: [
                       const Text("Show Insertions/Deletions with Arrows"), // New switch
@@ -442,7 +442,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                         },
                       ),
                     ],
-                  ),*/
+                  ),
                 ],
               ),
             ),
