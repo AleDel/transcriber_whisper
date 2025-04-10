@@ -18,7 +18,7 @@ class Data extends Equatable {
   });
 
   Data copyWith({
-    int? currentWordIndex,
+    int? currentAudioWordIndex,
     int? currentAssociatedWordIndex,
     Duration? audioPosition,
     Duration? audioDuration,
@@ -26,7 +26,7 @@ class Data extends Equatable {
     bool? playAndStopWordOnSelect,
   }) {
     return Data(
-      currentWordIndex: currentWordIndex ?? this.currentWordIndex,
+      currentWordIndex: currentAudioWordIndex ?? this.currentWordIndex,
       currentAssociatedWordIndex: currentAssociatedWordIndex ?? this.currentAssociatedWordIndex,
       audioPosition: audioPosition ?? this.audioPosition,
       audioDuration: audioDuration ?? this.audioDuration,

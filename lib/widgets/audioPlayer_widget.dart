@@ -27,6 +27,7 @@ class AudioPlayerWidget extends StatelessWidget {
                     if (state.status == TranscriptionStatus.isPlayerplaying) {
                       cubit.audioPlayer.pause();
                     } else {
+
                       cubit.audioPlayer.resume();
                     }
                   },

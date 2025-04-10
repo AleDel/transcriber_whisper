@@ -14,7 +14,7 @@ enum AssociationType {
 class Segment {
   final double start;
   final double end;
-  final String word; // Palabra de la transcripción (o puntuación)
+  final String word; // Palabra de la transcripción
   final double probability;
   final List<String> tags;
   final WordWithSpans? wordWithSpans;

@@ -21,11 +21,14 @@ import 'models/segment.dart';
 class TranscriptionCubit extends Cubit<TranscriptionState> {
   TranscriptionCubit() : super(const TranscriptionState(status: TranscriptionStatus.initial)) {
     //initSocket();
-    initAudioPlayer();
+    //initAudioPlayer();
+    //_initializeAudioPlayer();
   }
 
   final ScrollController scrollController = ScrollController();
-  final AudioPlayer audioPlayer = AudioPlayer();
+  //final AudioPlayer audioPlayer = AudioPlayer();
+  final AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 0"); // Ahora es final y se inicializa en el constructor
+  //AudioPlayer audioPlayer = AudioPlayer(playerId: "el audio player 0");
   late IO.Socket socket;
   Transcription? transcription;
   String textoRealformadoparrafos = "";
@@ -34,100 +37,16 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   bool _autoScrollEnabled = true;
   bool _userSelectedWord = false;
   bool _isPlayingWord = false;
+  bool _isSeeking = false;
+  bool _isForceCurrentWord = false;
+  int currentAudioWordIndex = -1;
+  int currentAssociatedWordIndex = -1;
+  Map<String, int> _segmentIndexMap = {};
+  int? _oldCurrentWordIndex;
   Timer? _wordPlayTimer;
   DateTime? _lastForceCurrentWordCall;
   final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 100);
   final int totalSamples = 512;
-/*static Map<String, Color> availableTags = {
-    'Omisioa': Colors.grey[300]!,
-    'Ordezkapena': Colors.grey[300]!,
-    'Asmaketa': Colors.grey[300]!,
-    'Berrirakurtzea': Colors.grey[300]!,
-    'Zuzenketa': Colors.grey[300]!,
-    'Gehikuntza': Colors.grey[300]!,
-    'Inbertsioa': Colors.grey[300]!,
-    'Jauzia': Colors.grey[300]!,
-    'Errepikapena': Colors.grey[300]!,
-  };
-  static Map<String, Color> availableTags = {
-    'Omisioa': Colors.grey[100]!,
-    'Ordezkapena': Colors.grey[200]!,
-    'Asmaketa': Colors.grey[300]!,
-    'Berrirakurtzea': Colors.grey[400]!,
-    'Zuzenketa': Colors.grey[500]!,
-    'Gehikuntza': Colors.grey[600]!,
-    'Inbertsioa': Colors.grey[100]!,
-    'Jauzia': Colors.grey[200]!,
-    'Errepikapena': Colors.grey[300]!,
-  };
-static Map<String, Color> availableTags = {
-    'Omisioa': Colors.limeAccent[400]!,
-    'Ordezkapena': Colors.yellowAccent[400]!,
-    'Asmaketa': Colors.orangeAccent[400]!,
-    'Berrirakurtzea': Colors.redAccent[400]!,
-    'Zuzenketa': Colors.pinkAccent[400]!,
-    'Gehikuntza': Colors.purpleAccent[400]!,
-    'Inbertsioa': Colors.blueAccent[400]!,
-    'Jauzia': Colors.cyanAccent[400]!,
-    'Errepikapena': Colors.greenAccent[400]!,
-  };
-static Map<String, Color> availableTags = {
-    'Omisioa': Colors.brown[200]!,
-    'Ordezkapena': Colors.brown[300]!,
-    'Asmaketa': Colors.brown[400]!,
-    'Berrirakurtzea': Colors.green[600]!,
-    'Zuzenketa': Colors.green[700]!,
-    'Gehikuntza': Colors.green[800]!,
-    'Inbertsioa': Colors.lime[600]!,
-    'Jauzia': Colors.lime[700]!,
-    'Errepikapena': Colors.lime[800]!,
-  };
-static Map<String, Color> availableTags = {
-    'Omisioa': Colors.pink[200]!,
-    'Ordezkapena': Colors.pink[300]!,
-    'Asmaketa': Colors.pink[400]!,
-    'Berrirakurtzea': Colors.pink[500]!,
-    'Zuzenketa': Colors.purple[300]!,
-    'Gehikuntza': Colors.purple[400]!,
-    'Inbertsioa': Colors.deepPurple[300]!,
-    'Jauzia': Colors.deepPurple[400]!,
-    'Errepikapena': Colors.deepPurple[500]!,
-  };
-static Map<String, Color> availableTags = {
-    'Omisioa': Colors.lightBlue[200]!,
-    'Ordezkapena': Colors.lightBlue[300]!,
-    'Asmaketa': Colors.lightBlue[400]!,
-    'Berrirakurtzea': Colors.lightBlue[500]!,
-    'Zuzenketa': Colors.cyan[300]!,
-    'Gehikuntza': Colors.cyan[400]!,
-    'Inbertsioa': Colors.teal[300]!,
-    'Jauzia': Colors.teal[400]!,
-    'Errepikapena': Colors.teal[500]!,
-  };
-
-  static Map<String, Color> availableTags = {
-    'Omisioa': Colors.red[200]!,
-    'Ordezkapena': Colors.red[300]!,
-    'Asmaketa': Colors.red[400]!,
-    'Berrirakurtzea': Colors.red[500]!,
-    'Zuzenketa': Colors.orange[300]!,
-    'Gehikuntza': Colors.orange[400]!,
-    'Inbertsioa': Colors.deepOrange[300]!,
-    'Jauzia': Colors.deepOrange[400]!,
-    'Errepikapena': Colors.deepOrange[500]!,
-  };
-
-  static Map<String, Color> availableTags = {
-    'Omisioa': Colors.blue[200]!,
-    'Ordezkapena': Colors.blue[300]!,
-    'Asmaketa': Colors.blue[400]!,
-    'Berrirakurtzea': Colors.blue[500]!,
-    'Zuzenketa': Colors.indigo[300]!,
-    'Gehikuntza': Colors.indigo[400]!,
-    'Inbertsioa': Colors.deepPurple[300]!,
-    'Jauzia': Colors.deepPurple[400]!,
-    'Errepikapena': Colors.deepPurple[500]!,
-  };*/
   static Map<String, Color> availableTags = {
     'Omisioa': Colors.blue[200]!,
     'Ordezkapena': Colors.blue[300]!,
@@ -168,31 +87,6 @@ static Map<String, Color> availableTags = {
     socket.on('connect_timeout', (data) {
       print('connect_timeout: $data');
       emit(state.copyWith(status: TranscriptionStatus.noserver));
-    });
-  }
-
-  // Inicializa el reproductor de audio
-  void initAudioPlayer() {
-    audioPlayer.onDurationChanged.listen((Duration d) {
-      emit(state.copyWith(extradata: state.extradata?.copyWith(audioDuration: d)));
-    });
-    audioPlayer.onPositionChanged.listen((Duration p) {
-      emit(state.copyWith(extradata: state.extradata?.copyWith(audioPosition: p)));
-      updateCurrentWord(); // Actualiza la palabra actual cuando cambia la posición
-    });
-    audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
-      if (s == PlayerState.playing) {
-        emit(state.copyWith(status: TranscriptionStatus.isPlayerplaying));
-      } else if (s == PlayerState.paused) {
-        emit(state.copyWith(status: TranscriptionStatus.isPlayerpause));
-      } else if (s == PlayerState.stopped) {
-        emit(state.copyWith(status: TranscriptionStatus.isPlayerstopped));
-      } else if (s == PlayerState.completed) {
-        emit(state.copyWith(status: TranscriptionStatus.isPlayercompleted));
-      }
-    });
-    audioPlayer.onPlayerComplete.listen((event) {
-      emit(state.copyWith(status: TranscriptionStatus.isPlayercompleted));
     });
   }
 
@@ -374,24 +268,9 @@ static Map<String, Color> availableTags = {
     return paragraphs.join('\n\n');
   }
 
-  /*String formatTextIntoParagraphs(String text) {
-    // Eliminar espacios al principio y al final del texto
-    text = text.trim();
-
-    // Reemplazar múltiples saltos de línea por dos saltos de línea
-    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-    // Reemplazar múltiples espacios por un solo espacio
-    text = text.replaceAll(RegExp(r'\s{2,}'), ' ');
-
-    // Eliminar saltos de línea al principio o al final de cada párrafo
-    text = text.replaceAll(RegExp(r'^\n+|\n+$'), '');
-
-    // Eliminar saltos de línea simples dentro de un párrafo
-    text = text.replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ');
-
-    return text;
-  }*/
+  void resetState() {
+    emit(const TranscriptionState(status: TranscriptionStatus.loading));
+  }
 
   Future<void> useMockTranscriptionEU() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
@@ -400,7 +279,7 @@ static Map<String, Color> availableTags = {
     //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test1_normalized.json');
     //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test2_normalized.json');
     String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
-    print("transcriptionWhisper jsonString --> $jsonString");
+    //print("transcriptionWhisper jsonString --> $jsonString");
     List<dynamic> jsonList = json.decode(jsonString);
     List<Map<String, dynamic>> listMap = jsonList.map((item) => item as Map<String, dynamic>).toList();
 
@@ -412,21 +291,35 @@ static Map<String, Color> availableTags = {
 
     // Formatear el texto real usando la nueva función
     final formattedRawRealText = formatTextIntoParagraphs(text);
-    print("formattedRawRealText --> $formattedRawRealText");
+    //print("formattedRawRealText --> $formattedRawRealText");
 
-    final transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
-    //final alignedSegments = _createAlignedSegments(formattedRawRealText, transcription.transcriptionSegments);
+    transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
 
     // Asignar el texto real a la transcripción
-    transcription.referenceText = formattedRawRealText;
+    transcription?.referenceText = formattedRawRealText;
 
     // Llamar a la función para imprimir la información
-    transcription.printWordAlignmentSegmentsInfo();
+    //transcription.printWordAlignmentSegmentsInfo();
 
+    //initAudioPlayer();
+    await initAudioPlayer();
     await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
 
     // Actualizar el estado
     emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
+
+    _createSegmentIndexMap();
+  }
+
+  void _createSegmentIndexMap() {
+    _segmentIndexMap = {};
+    if (state.transcription!.audioTranscriptionSegments != null) {
+      for (int i = 0; i < state.transcription!.audioTranscriptionSegments.length; i++) {
+        final segment = state.transcription!.audioTranscriptionSegments[i];
+        final segmentKey = "${segment.start}-${segment.end}";
+        _segmentIndexMap[segmentKey] = i;
+      }
+    }
   }
 
   Future<void> useMockTranscriptionES() async {
@@ -434,15 +327,21 @@ static Map<String, Color> availableTags = {
 
     String text = await rootBundle.loadString('assets/texto_LA_TORTUGA_KALI.txt');
 
-    String formattedText = formatTextIntoParagraphs(text);
-    textoRealformadoparrafos = formattedText;
-    transcription = Transcription.fromListMap(listMap: textoTransMock, referenceText: textoRealformadoparrafos);
+    // Formatear el texto real usando la nueva función
+    final formattedRawRealText = formatTextIntoParagraphs(text);
+    //print("formattedRawRealText --> $formattedRawRealText");
 
-    // Llamar a associateWords en lugar de calculateWordsWithSpans
-    //transcription!.associateWords();
+    transcription = Transcription.fromListMap(listMap: textoTransMock, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
+
+    // Asignar el texto real a la transcripción
+    transcription?.referenceText = formattedRawRealText;
+
+    /*String formattedText = formatTextIntoParagraphs(text);
+    textoRealformadoparrafos = formattedText;
+    transcription = Transcription.fromListMap(listMap: textoTransMock, referenceText: textoRealformadoparrafos);*/
 
     // Imprimir información de las asociaciones
-    for (int i = 0; i < transcription!.audioTranscriptionSegments.length; i++) {
+    /*for (int i = 0; i < transcription!.audioTranscriptionSegments.length; i++) {
       final segment = transcription!.audioTranscriptionSegments[i];
       print("Segmento ${i + 1}:");
       print("  Palabra transcrita: ${segment.word}");
@@ -455,10 +354,15 @@ static Map<String, Color> availableTags = {
         print("    Palabra real asociada: ${segment.wordAssociation!.realWord}");
         print("    Probabilidades de las palabras transcritas asociadas: ${segment.wordAssociation!.transcribedWordsProbabilities}");
       }
-    }
+    }*/
+
     await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
-    emit(state.copyWith(status: TranscriptionStatus.loaded, transcription: transcription, textoRealformadoparrafos: textoRealformadoparrafos));
+    emit(state.copyWith(status: TranscriptionStatus.loaded, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
+    _createSegmentIndexMap();
+
   }
+
+  ///////////////////
 
   void toggleEditMode() {
     emit(state.copyWith(editMode: !state.editMode));
@@ -542,40 +446,112 @@ static Map<String, Color> availableTags = {
     _autoScrollEnabled = value;
   }
 
+  ////////////// audio sync
 
-  /*void updateCurrentWord() {
-    if (state.transcription == null) return;
-    if (_userSelectedWord) return;
-    final currentPosition = state.extradata!.audioPosition;
-    if (currentPosition == null) return;
-    final currentMillis = currentPosition.inMilliseconds;
-    int currentWordIndex = -1;
-    int currentAssociatedWordIndex = -1;
-    // Buscar en audioTranscriptionSegments
-    if (state.transcription!.audioTranscriptionSegments.isNotEmpty) {
-      currentWordIndex = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
-    }
-    // Todo Buscar una forma mas rapida y eficiente de buscar el indice de la palabra segun la posicion del audio
-    // Buscar en wordAlignmentSegments
-    if (state.transcription!.wordAlignmentSegments != null) {
-      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-        final segment = state.transcription!.wordAlignmentSegments![i];
-        final startMillis = (segment.start * 1000).toInt();
-        final endMillis = (segment.end * 1000).toInt();
-        if (currentMillis >= startMillis && currentMillis <= endMillis) {
-          currentAssociatedWordIndex = i;
-          break;
-        }
+  void stopAudioPlayer() async {
+    await audioPlayer.stop();
+  }
+  Future<void> restartAudioPlayer() async {
+    //await audioPlayer.stop();
+    //await audioPlayer.setSource(BytesSource(Uint8List(0)));
+    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
+  }
+
+  Future<void> initAudioPlayer() async {
+    print("-- initAudioPlayer --");
+    /*if (audioPlayer != null) {
+      print("-- initAudioPlayer -- Dispose el AudioPlayer antiguo: ${audioPlayer.playerId}");
+      print("audioPlayer.mode.name: ${audioPlayer.mode.name}");
+      print("audioPlayer.releaseMode.name: ${audioPlayer.releaseMode.name}");
+
+      //audioPlayer.setReleaseMode(releaseMode)
+      audioPlayer.release();
+      audioPlayer.dispose();
+    }*/
+    //await restartAudioPlayer();
+    print("-- initAudioPlayer -- Creando nueva instancia de AudioPlayer y listeners");
+    //audioPlayer = AudioPlayer(); // Ya no es necesario
+    //await audioPlayer.setReleaseMode(ReleaseMode.stop);
+    //await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
+    print("-- initAudioPlayer Nuevo -- ${audioPlayer.playerId}");
+    audioPlayer.onDurationChanged.listen((Duration d) {
+      emit(state.copyWith(extradata: state.extradata?.copyWith(audioDuration: d)));
+    });
+    audioPlayer.onPositionChanged.listen((Duration p) {
+      emit(state.copyWith(extradata: state.extradata?.copyWith(audioPosition: p)));
+      updateCurrentWord(); // Actualizar la palabra actual en cada cambio de posición
+    });
+    audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
+      if (s == PlayerState.playing) {
+        emit(state.copyWith(status: TranscriptionStatus.isPlayerplaying));
+      } else if (s == PlayerState.paused) {
+        emit(state.copyWith(status: TranscriptionStatus.isPlayerpause));
+      } else if (s == PlayerState.stopped) {
+        emit(state.copyWith(status: TranscriptionStatus.isPlayerstopped));
+      } else if (s == PlayerState.completed) {
+        emit(state.copyWith(status: TranscriptionStatus.isPlayercompleted));
       }
-    }
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
-  }*/
+    });
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: 0, currentAssociatedWordIndex: 0)));
+  }
+
 
   // Actualiza la palabra actual basándose en la posición del audio
   void updateCurrentWord() {
-    print("-- updateCurrentWord --");
+    //print("sssssssssssssss");
+    if (audioPlayer.state != PlayerState.playing) return; // Comprobar si el audio se esta reproduciendo
     if (state.transcription == null) return;
-    if (_userSelectedWord) return; // No actualizar si el usuario ha seleccionado una palabra
+    final currentPosition = state.extradata!.audioPosition;
+    if (currentPosition == null) return;
+    final currentMillis = currentPosition.inMilliseconds;
+
+    // Buscar en audioTranscriptionSegments
+    if (state.transcription!.audioTranscriptionSegments.isNotEmpty) {
+      currentAudioWordIndex = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
+    }
+    //print("sssssssssssssss buscando indice de la palabra en la transcripcion desde la posicion del audio en milisegundo con _binarySearch --> currentWordIndex: $currentAudioWordIndex");
+    if (currentAudioWordIndex == -1) {
+      return;
+    }
+    //print("sssssssssssssss palabra de la transcripcion: $currentAudioWordIndex. ${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].word}");
+
+    // Buscar en wordAlignmentSegments
+    if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegments!.isNotEmpty) {
+      // Si de la posicion del audo encontro la palabra en audioTranscriptionSegments
+      if (state.extradata!.currentWordIndex != null || currentAudioWordIndex != -1) {
+        final forcedSegment = state.transcription!.audioTranscriptionSegments[state.extradata!.currentWordIndex!];
+        if (currentMillis < (forcedSegment.start * 1000).toInt() || currentMillis > (forcedSegment.end * 1000).toInt()) {
+          _isForceCurrentWord = false; // Reset the flag
+          // Buscar la asociación correcta para la nueva palabra
+          final segmentKey =
+              "${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].start}-${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].end}";
+          for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+            final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+            if (associatedSegment.transcribedIndex == _segmentIndexMap[segmentKey]) {
+              currentAssociatedWordIndex = i;
+              break;
+            }
+          }
+          // Si no se encontró una asociación directa, buscar la coincidencia más cercana
+          if (currentAssociatedWordIndex != -1) {
+            //print("sssssssssssssss palabra de wordAlignmentSegments: $currentAssociatedWordIndex. ${state.transcription!.wordAlignmentSegments[currentAssociatedWordIndex].word}");
+          }
+          if (currentAssociatedWordIndex == -1) {
+            return; // Do nothing
+          }
+        } else {
+          return; // Do nothing if a word is being forced
+        }
+      }
+    }
+    //print("ssssssssssss emitiendo -----> currentWordIndex: $currentAudioWordIndex, currentAssociatedWordIndex: $currentAssociatedWordIndex");
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: currentAudioWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
+    //print("Fin -- updateCurrentWord");
+  }
+  /*void updateCurrentWord() {
+    print("sssssssssssssss");
+    if (audioPlayer.state != PlayerState.playing) return; // Comprobar si el audio se esta reproduciendo
+    if (state.transcription == null) return;
     final currentPosition = state.extradata!.audioPosition;
     if (currentPosition == null) return;
     final currentMillis = currentPosition.inMilliseconds;
@@ -588,9 +564,72 @@ static Map<String, Color> availableTags = {
     // Buscar en wordAlignmentSegments
     if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegments!.isNotEmpty) {
       currentAssociatedWordIndex = _binarySearchAssociated(state.transcription!.wordAlignmentSegments!, currentMillis);
+      if(currentAssociatedWordIndex == -1 && currentWordIndex != -1){
+        currentAssociatedWordIndex = _binarySearchAssociated(state.transcription!.wordAlignmentSegments!, currentMillis);
+      }
+      if (_isForceCurrentWord) {
+        // Check if the current position is outside the bounds of the forced word
+        if (state.extradata!.currentWordIndex != null) {
+          final forcedSegment = state.transcription!.audioTranscriptionSegments[state.extradata!.currentWordIndex!];
+          if (currentMillis < (forcedSegment.start * 1000).toInt() || currentMillis > (forcedSegment.end * 1000).toInt()) {
+            _isForceCurrentWord = false; // Reset the flag
+            currentAssociatedWordIndex = -1;
+          } else {
+            return; // Do nothing if a word is being forced
+          }
+        }
+      }
     }
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
-  }
+  }*/
+
+  /////////////probarlu ego
+  // Fuerza la palabra actual a un índice específico (cuando el usuario hace clic)
+  /*void forceCurrentWord(int index) {
+    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
+    final now = DateTime.now();
+    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
+      return; // Evita llamadas muy seguidas
+    }
+    _lastForceCurrentWordCall = now;
+    _isForceCurrentWord = true; // Indicar que se ha forzado la palabra
+    final segment = state.transcription!.audioTranscriptionSegments[index];
+    final startMillis = (segment.start * 1000).toInt();
+
+    // Check if the audio is playing
+    if (audioPlayer.state == PlayerState.playing) {
+      audioPlayer.pause(); // Pause if playing
+    } else {
+      audioPlayer.seek(Duration(milliseconds: startMillis)); // Seek to the new position
+      audioPlayer.resume(); // Resume if not playing
+    }
+
+    // Buscar el indice de la palabra asociada
+    int associatedWordIndex = -1;
+    if(state.transcription!.wordAlignmentSegments != null){
+      // Buscar la palabra asociada correcta
+      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+        final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+        // Comprobar si la palabra asociada coincide con la palabra en la que se hizo clic
+        if (associatedSegment.audioSegmentIndex == index) {
+          associatedWordIndex = i;
+          break;
+        }
+      }
+      // Si no se encontró una asociación directa, buscar la coincidencia más cercana
+      if (associatedWordIndex == -1) {
+        for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
+          final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+          if (associatedSegment.start == segment.start && associatedSegment.end == segment.end) {
+            associatedWordIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    print("llamado forceCurrentWord con index $index : resultado: currentWordIndex $index associatedWordIndex $associatedWordIndex");
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
+  }*/
 
   // Fuerza la palabra actual a un índice específico (cuando el usuario hace clic)
   void forceCurrentWord(int index) {
@@ -600,14 +639,21 @@ static Map<String, Color> availableTags = {
       return; // Evita llamadas muy seguidas
     }
     _lastForceCurrentWordCall = now;
-    _userSelectedWord = true; // Indicar que el usuario ha seleccionado una palabra
+    _isForceCurrentWord = true; // Indicar que se ha forzado la palabra
     final segment = state.transcription!.audioTranscriptionSegments[index];
     final startMillis = (segment.start * 1000).toInt();
-    final endMillis = (segment.end * 1000).toInt();
-    audioPlayer.seek(Duration(milliseconds: startMillis)); // Mueve el audio a la posición de la palabra
+
+    // Check if the audio is playing
+    if (audioPlayer.state == PlayerState.playing) {
+      audioPlayer.pause(); // Pause if playing
+    } else {
+      audioPlayer.seek(Duration(milliseconds: startMillis)); // Seek to the new position
+      audioPlayer.resume(); // Resume if not playing
+    }
+
     // Buscar el indice de la palabra asociada
     int associatedWordIndex = -1;
-    if(state.transcription!.wordAlignmentSegments != null){
+    if (state.transcription!.wordAlignmentSegments != null) {
       for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
         final associatedSegment = state.transcription!.wordAlignmentSegments![i];
         if (associatedSegment.start == segment.start && associatedSegment.end == segment.end) {
@@ -617,31 +663,12 @@ static Map<String, Color> availableTags = {
       }
     }
     print("llamado forceCurrentWord con index $index : resultado: currentWordIndex $index associatedWordIndex $associatedWordIndex");
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
-
-    if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
-      _wordPlayTimer!.cancel(); // Cancelar el timer anterior si existe
-    }
-
-    if (state.extradata!.playAndStopWordOnSelect) {
-      if (_isPlayingWord) {
-        audioPlayer.pause();
-      }
-      _isPlayingWord = true;
-      audioPlayer.resume();
-      _wordPlayTimer = Timer(Duration(milliseconds: endMillis - startMillis), () {
-        audioPlayer.pause();
-        _isPlayingWord = false;
-      });
-    }
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _userSelectedWord = false; // Resetear la variable después de un tiempo
-    });
+    emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
   }
 
   // Búsqueda binaria en la lista de segmentos de audio
   int _binarySearch(List<Segment> segments, int target) {
+    //print("_binarySearch");
     int left = 0;
     int right = segments.length - 1;
     while (left <= right) {
@@ -649,7 +676,7 @@ static Map<String, Color> availableTags = {
       final segment = segments[mid];
       final startMillis = (segment.start * 1000).toInt();
       final endMillis = (segment.end * 1000).toInt();
-      if (target >= startMillis && target <= endMillis) {
+      if (target >= startMillis && target < endMillis) {
         return mid; // Encontrado
       } else if (target < startMillis) {
         right = mid - 1; // Buscar en la mitad izquierda
@@ -662,6 +689,7 @@ static Map<String, Color> availableTags = {
 
   // Búsqueda binaria en la lista de segmentos alineados con el texto real
   int _binarySearchAssociated(List<Segment> segments, int target) {
+    //print("_binarySearchAssociated");
     int left = 0;
     int right = segments.length - 1;
     while (left <= right) {
@@ -669,7 +697,8 @@ static Map<String, Color> availableTags = {
       final segment = segments[mid];
       final startMillis = (segment.start * 1000).toInt();
       final endMillis = (segment.end * 1000).toInt();
-      if (target >= startMillis && target <= endMillis) {
+      if (target >= startMillis && target < endMillis) {
+        // Cambio aquí: target < endMillis
         return mid; // Encontrado
       } else if (target < startMillis) {
         right = mid - 1; // Buscar en la mitad izquierda
@@ -680,135 +709,10 @@ static Map<String, Color> availableTags = {
     return -1; // No encontrado
   }
 
-  /*void forceCurrentWord(int index) {
-    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
-    final now = DateTime.now();
-    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      return;
-    }
-    _lastForceCurrentWordCall = now;
-    _userSelectedWord = true;
-    final segment = state.transcription!.audioTranscriptionSegments[index];
-    final startMillis = (segment.start * 1000).toInt();
-    final endMillis = (segment.end * 1000).toInt();
-    audioPlayer.seek(Duration(milliseconds: startMillis));
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
-
-    if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
-      _wordPlayTimer!.cancel();
-    }
-
-    if (state.extradata!.playAndStopWordOnSelect) {
-      if (_isPlayingWord) {
-        audioPlayer.pause();
-      }
-      _isPlayingWord = true;
-      audioPlayer.resume();
-      _wordPlayTimer = Timer(Duration(milliseconds: endMillis - startMillis), () {
-        audioPlayer.pause();
-        _isPlayingWord = false;
-      });
-    }
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _userSelectedWord = false;
-    });
-  }*/
-
-  /*// Nueva función para mapear índices
-  int mapWordAlignmentIndexToAudioTranscriptionIndex(int wordAlignmentIndex) {
-    if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.audioTranscriptionSegments.isEmpty) {
-      return -1; // O un valor que indique error
-    }
-    if (wordAlignmentIndex < 0) {
-      return -1;
-    }
-    int audioTranscriptionIndex = 0;
-    for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-      final wordAlignmentSegment = state.transcription!.wordAlignmentSegments![i];
-      if (wordAlignmentSegment.word == "\n\n") {
-        continue;
-      }
-      if (i == wordAlignmentIndex) {
-        // Encontrar el segmento correspondiente en audioTranscriptionSegments
-        for (int j = 0; j < state.transcription!.audioTranscriptionSegments.length; j++) {
-          final audioTranscriptionSegment = state.transcription!.audioTranscriptionSegments[j];
-          if (audioTranscriptionSegment.start == wordAlignmentSegment.start / 1000) {
-            return j;
-          }
-        }
-      }
-    }
-    return -1; // O un valor que indique error
-  }
-
-  // Nueva función para manejar wordAlignmentSegments
-  void forceCurrentWordFromAlignment(int index) {
-    if (state.transcription == null || state.transcription!.wordAlignmentSegments == null || state.transcription!.wordAlignmentSegments!.isEmpty) {
-      return;
-    }
-    final now = DateTime.now();
-    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      return;
-    }
-    _lastForceCurrentWordCall = now;
-    _userSelectedWord = true;
-    if (index < 0) {
-      index = 0;
-    }
-    if (index >= state.transcription!.wordAlignmentSegments!.length) {
-      index = state.transcription!.wordAlignmentSegments!.length - 1;
-    }
-    final segment = state.transcription!.wordAlignmentSegments![index];
-
-    final startMillis = (segment.start * 1000).toInt();
-    final newPosition = Duration(milliseconds: startMillis);
-
-    audioPlayer.seek(newPosition);
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, audioPosition: newPosition)));
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _userSelectedWord = false;
-    });
-  }*/
-
-  /*void forceCurrentAssociatedWord(int index) {
-    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
-    final now = DateTime.now();
-    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      return;
-    }
-    _lastForceCurrentWordCall = now;
-    _userSelectedWord = true;
-    final segment = state.transcription!.wordAlignmentSegments![index];
-    final startMillis = (segment.start * 1000).toInt();
-    final endMillis = (segment.end * 1000).toInt();
-    audioPlayer.seek(Duration(milliseconds: startMillis));
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index)));
-
-    if (_wordPlayTimer != null && _wordPlayTimer!.isActive) {
-      _wordPlayTimer!.cancel();
-    }
-
-    if (state.extradata!.playAndStopWordOnSelect) {
-      if (_isPlayingWord) {
-        audioPlayer.pause();
-      }
-      _isPlayingWord = true;
-      audioPlayer.resume();
-      _wordPlayTimer = Timer(Duration(milliseconds: endMillis - startMillis), () {
-        audioPlayer.pause();
-        _isPlayingWord = false;
-      });
-    }
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _userSelectedWord = false;
-    });
-  }*/
-
   void togglePlayAndStopWordOnSelect() {
     emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
   }
+  /////////////////
 
   void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
     List<String> selectedTags = [];
@@ -900,8 +804,6 @@ static Map<String, Color> availableTags = {
     }
     return -1;
   }
-
-
 
   void _editSegment(BuildContext context, int index) {
     final segment = state.transcription!.rawReferenceTextSegments![index];

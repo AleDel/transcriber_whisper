@@ -45,7 +45,7 @@ class Transcription {
     String? referenceText,
     this.shouldInsertPunctuation = false, // Nuevo parámetro
   }) {
-    print("listMap --> $listMap");
+    //print("listMap --> $listMap");
     this.referenceText = referenceText;
     if (generateAudioTranscriptionSegments) {
       for (Map<String, dynamic> map in listMap) {
@@ -227,19 +227,19 @@ class Transcription {
     List<String> transcriptionWords = audioTranscriptionSegments.map((s) => s.word.toLowerCase()).toList();
 
     // Imprimir los strings que se pasan a Diff
-    print("referenceWords: $referenceWords");
-    print("transcriptionWords: $transcriptionWords");
+    //print("referenceWords: $referenceWords");
+    //print("transcriptionWords: $transcriptionWords");
 
     // Calcular las diferencias usando PatienceDiffJs
     PatienceDiffJs diff = PatienceDiffJs(referenceWords, transcriptionWords, false);
     Map<String, dynamic> diffResult = diff.patienceDiffJs();
     // Imprimir el resultado del diff
-    print("Resultado del diff: $diffResult");
+    //print("Resultado del diff: $diffResult");
 
     // Procesar los cambios (inserciones, eliminaciones y coincidencias)
     List<Map<String, dynamic>> lines = diffResult['lines'];
     // Imprimir las lineas del diff
-    print("Lineas del diff: $lines");
+    //print("Lineas del diff: $lines");
     for (Map<String, dynamic> line in lines) {
       int aIndex = line['aIndex'];
       int bIndex = line['bIndex'];
@@ -280,7 +280,7 @@ class Transcription {
           realOrder: aIndex,
           transcribedOrder: bIndex,
         );
-        print("associateWords - Palabra asociada por coincidencia exacta: ${referenceSegment.word} (índice ref: $aIndex, índice trans: $bIndex)");
+        //print("associateWords - Palabra asociada por coincidencia exacta: ${referenceSegment.word} (índice ref: $aIndex, índice trans: $bIndex)");
       } else if (aIndex >= 0 && bIndex < 0) {
         // Eliminación
         Segment deletedSegment = referenceTextSegments[aIndex];
@@ -314,7 +314,7 @@ class Transcription {
           realOrder: aIndex,
           transcribedOrder: null,
         );
-        print("associateWords - Palabra eliminada en el texto de referencia: ${deletedSegment.word} (índice: ${deletedSegment.realIndex})");
+        //print("associateWords - Palabra eliminada en el texto de referencia: ${deletedSegment.word} (índice: ${deletedSegment.realIndex})");
       } else if (aIndex < 0 && bIndex >= 0) {
         // Inserción
         Segment insertedSegment = audioTranscriptionSegments[bIndex];
@@ -348,7 +348,7 @@ class Transcription {
           realOrder: null,
           transcribedOrder: bIndex,
         );
-        print("associateWords - Palabra insertada en la transcripción: ${insertedSegment.word} (índice: ${insertedSegment.transcribedIndex})");
+        //print("associateWords - Palabra insertada en la transcripción: ${insertedSegment.word} (índice: ${insertedSegment.transcribedIndex})");
       }
     }
     print("associateWords - Fin");

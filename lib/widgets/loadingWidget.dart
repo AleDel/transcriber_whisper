@@ -16,7 +16,7 @@ class LoadingWidget extends StatelessWidget {
             children: [
               Center(
                 child: LoadingAnimationWidget.progressiveDots(
-                  color: Colors.white10,
+                  color: Colors.red,
                   size: 100,
                 ),
               ),

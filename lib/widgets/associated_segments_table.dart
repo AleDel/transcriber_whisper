@@ -248,7 +248,7 @@ class _AssociatedSegmentsTableState extends State<AssociatedSegmentsTable> {
                           onHighlightDifferencesChanged: (bool value) {},
                           onHighlightDeletedWordsChanged: (bool value) {},
                           onShowOnlyInsertionsChanged: (bool value) {},
-                          onShowInsertionsAndDeletionsWithArrowsChanged: (bool value) {},
+                          onShowInsertionsAndDeletionsWithArrowsChanged: (bool value) {}, onShowCoincidencePunctuationAndDeletedChanged: (bool value) {  },
                         ),
                       ),
                     ),
