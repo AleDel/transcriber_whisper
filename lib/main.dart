@@ -1,81 +1,48 @@
+import 'dart:html' as html;
+import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:transcriber_whisper/diff_text_page.dart';
-import 'package:transcriber_whisper/eu_page.dart';
-import 'package:transcriber_whisper/eu_text_page.dart';
-import 'package:transcriber_whisper/home_page.dart';
 import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:get_it/get_it.dart';
-import 'package:transcriber_whisper/transcribe_page.dart';
-
-import 'demo_page.dart';
-import 'es_page.dart';
-import 'eu_text_page2.dart';
-import 'otradiff_page.dart';
-
-import 'dart:html' as html;
+import 'models/iframe_integration.dart';
 
 final getIt = GetIt.instance;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   getIt.registerSingleton<TranscriptionCubit>(TranscriptionCubit());
-  // Escuchar el evento popstate
-  /*html.window.onPopState.listen((_) {
-    print("aaaaaaaaaa");
-    // Redirigir a la ruta principal
-    navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-  });
-  // Escuchar el evento load
-  html.window.onLoad.listen((_) {
-    print("aaaaaaaaaa");
-    // Redirigir a la ruta principal
-    navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-  });*/
-  // Escuchar el evento flutter-first-frame
-  html.window.addEventListener('flutter-first-frame', (ev) {
-    print("Flutter se ha cargado recibido");
-    //getIt<TranscriptionCubit>().resetState();
-    // Redirigir a la ruta principal
-     //navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-
-  });
-  html.window.onBeforeUnload.listen((event) async{
-    print("onBeforeUnload");
-    getIt<TranscriptionCubit>().audioPlayer.release();
-    getIt<TranscriptionCubit>().audioPlayer.dispose();
-    //await navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-  });
-  html.window.onUnload.listen((event) async{
-    print("onUnload");
-   // await navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-  });
-  runApp(const MainApp());
+  getIt.registerSingleton<IframeIntegration>(IframeIntegration());
+  runApp(const MainAppWrapper()); // Usar MainAppWrapper en lugar de MainApp
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+// Nuevo StatefulWidget para exponer la función a JavaScript
+class MainAppWrapper extends StatefulWidget {
+  const MainAppWrapper({super.key});
+
+  @override
+  State<MainAppWrapper> createState() => _MainAppWrapperState();
+}
+
+class _MainAppWrapperState extends State<MainAppWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    getIt<IframeIntegration>().exposeFunctionToJs(getIt: getIt); // Llamar a exposeFunctionToJs en initState
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<TranscriptionCubit>(),
-      child:MaterialApp(home: DiffTextPage(),) /*MaterialApp(
-        navigatorKey: navigatorKey,
-        debugShowCheckedModeBanner: false,
-        initialRoute: '/',
-        routes: {
-          //'/': (context) => const HomePage(), // Ruta principal
-          '/': (context) => const DiffTextPage(), // Ruta principal
-          '/testCompare':(context) => OtraDiffPage(title: '',),
-          '/EUTextPage': (context) => const EUTextPage2(),
-          '/EUPage': (context) => const EUPage(),
-          '/ESPage': (context) => const ESPage(),
-          '/TrascribePage':(context)=>  TranscribePage(),
-          '/DemoPage':(context)=>  DemoPage(),
-          '/DiffTextPage':(context)=>  DiffTextPage(),
-        },
-      ),*/
+    return MaterialApp(
+      title: 'Diff Viewer',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: BlocProvider(
+        create: (context) => getIt<TranscriptionCubit>(),
+        child: const DiffTextPage(),
+      ),
     );
   }
 }

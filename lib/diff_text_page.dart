@@ -9,6 +9,7 @@ import 'package:transcriber_whisper/widgets/highlighted_real_text_widget.dart';
 import 'package:transcriber_whisper/widgets/loadingWidget.dart';
 import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
 
+
 class DiffTextPage extends StatefulWidget {
   const DiffTextPage({super.key});
 
@@ -23,10 +24,10 @@ class _DiffTextPageState extends State<DiffTextPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    /*WidgetsBinding.instance.addPostFrameCallback((_) {
       //getIt<TranscriptionCubit>().restartAudioPlayer();
       getIt<TranscriptionCubit>().useMockTranscriptionEU();
-    });
+    });*/
   }
 
   @override
@@ -39,7 +40,7 @@ class _DiffTextPageState extends State<DiffTextPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Diff Text Page')),
+      //appBar: AppBar(title: const Text('Diff Text Page')),
       body: Stack(
         children: [
           BlocBuilder<TranscriptionCubit, TranscriptionState>(
@@ -54,24 +55,24 @@ class _DiffTextPageState extends State<DiffTextPage> {
               if (state.status == TranscriptionStatus.loading) {
                 //return Center(child: CircularProgressIndicator());
                 //return LoadingWidget();
-                return LoadingAnimationWidget.hexagonDots(
-                  color: Colors.red,
-                  size: 100,
-                );
+                return LoadingAnimationWidget.hexagonDots(color: Colors.red, size: 100);
               }
               return Column(
                 // Eliminado Center y añadido Column
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   // botones transcribir, etc
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      //ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().pickAudioFile(), child: const Text('Cargar Audio')),
-                      //ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionEU(), child: const Text('Usar Mock data')),
-                      ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionES(), child: const Text('Usar Mock data Es')),
-                      ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionEU(), child: const Text('Usar Mock data Eu')),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        //ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().pickAudioFile(), child: const Text('Cargar Audio')),
+                        //ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionEU(), child: const Text('Usar Mock data')),
+                        ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionES(), child: const Text('Usar Mock data Es')),
+                        ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionEU(), child: const Text('Usar Mock data Eu')),
+                      ],
+                    ),
                   ),
                   // interfaz grafica principal
                   if (state.transcription != null)
@@ -101,7 +102,7 @@ class _DiffTextPageState extends State<DiffTextPage> {
                                   ),
                                 ),
                               ),
-                              Expanded(child: SizedBox(height: 60, child: AudioPlayerWidget())),
+                              //Expanded(child: SizedBox(height: 60, child: AudioPlayerWidget())),
                             ],
                           ),
                           Expanded(

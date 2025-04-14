@@ -61,7 +61,7 @@ class _TwoRowsWithSharedScrollWidgetState extends State<TwoRowsWithSharedScrollW
                   // Row for transcription.realsegments (real words)
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: state.transcription!.referenceTextSegments!.map((segment) => segment.word).toList().map((word) => _buildRawWordWidget(word)).toList(),
+                    children: state.transcription!.referenceTextOnlyWordsSegments!.map((segment) => segment.word).toList().map((word) => _buildRawWordWidget(word)).toList(),
                   ),
                   /*Row(
                     mainAxisSize: MainAxisSize.min,

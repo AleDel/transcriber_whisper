@@ -33,7 +33,7 @@ class _TranscribePageState extends State<TranscribePage> {
                   // ... (otros widgets)
                   AssociatedSegmentsTable(
                     associatedSegments: state.transcription?.wordAlignmentSegments,
-                    realTextSegments: state.transcription?.referenceTextSegments,
+                    realTextSegments: state.transcription?.referenceTextOnlyWordsSegments,
                     realTextWords: state.transcription?.referenceTextWords,transcribedWords: state.transcription?.audioTranscriptionWords,
                   ),
                   // ... (otros widgets)

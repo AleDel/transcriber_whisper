@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/segment_context_menu.dart';
@@ -18,11 +19,13 @@ import 'mockData/textotest.dart';
 import 'models/alignment_mfa_data.dart';
 import 'models/segment.dart';
 
+import 'dart:html' as html; // Import for web-specific functionality
+import 'package:flutter/foundation.dart' show kIsWeb; // Import for web detection
+
 class TranscriptionCubit extends Cubit<TranscriptionState> {
   TranscriptionCubit() : super(const TranscriptionState(status: TranscriptionStatus.initial)) {
     //initSocket();
     //initAudioPlayer();
-    //_initializeAudioPlayer();
   }
 
   final ScrollController scrollController = ScrollController();
@@ -35,18 +38,25 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   //Transcription? realtextComoTranscription;
   AlignmentMFAData? alignmentData_texto; // alineamiento del audio con el texto escrito
   bool _autoScrollEnabled = true;
-  bool _userSelectedWord = false;
-  bool _isPlayingWord = false;
-  bool _isSeeking = false;
   bool _isForceCurrentWord = false;
   int currentAudioWordIndex = -1;
   int currentAssociatedWordIndex = -1;
   Map<String, int> _segmentIndexMap = {};
-  int? _oldCurrentWordIndex;
-  Timer? _wordPlayTimer;
   DateTime? _lastForceCurrentWordCall;
   final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 100);
   final int totalSamples = 512;
+  /*static Map<String, Color> availableTags = {
+    'Omisioa': const Color(0xFFE57373), // Red 300 (Rojo Suave)
+    'Ordezkapena': const Color(0xFFFFA726), // Orange 400 (Naranja Medio)
+    'Asmaketa': const Color(0xFFFFEB3B), // Yellow 500 (Amarillo Intenso)
+    'Berrirakurtzea': const Color(0xFF66BB6A), // Green 400 (Verde Medio)
+    'Zuzenketa': const Color(0xFF29B6F6), // Light Blue 400 (Azul Claro Medio)
+    'Gehikuntza': const Color(0xFF26C6DA), // Cyan 400 (Cian Medio)
+    'Inbertsioa': const Color(0xFFAB47BC), // Purple 400 (Morado Medio)
+    'Jauzia': const Color(0xFF7E57C2), // Deep Purple 400 (Morado Oscuro Medio)
+    'Errepikapena': const Color(0xFFEC407A), // Pink 500 (Rosa Intenso)
+    'Puntuazioa': const Color(0xFF78909C), // Blue Grey 400 (Gris Azulado Medio)
+  };*/
   static Map<String, Color> availableTags = {
     'Omisioa': Colors.blue[200]!,
     'Ordezkapena': Colors.blue[300]!,
@@ -57,6 +67,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     'Inbertsioa': Colors.deepPurple[300]!,
     'Jauzia': Colors.deepPurple[400]!,
     'Errepikapena': Colors.deepPurple[500]!,
+    'Puntuazioa': const Color(0xFF78909C), // Blue Grey 400 (Gris Azulado Medio)
   };
   static Map<String, String> tagToSymbol = {
     'Omisioa': '-',
@@ -68,8 +79,216 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     'Inbertsioa': 'I',
     'Jauzia': 'J',
     'Errepikapena': 'E',
+    'Puntuazioa': '.',
   };
 
+  String transcription_path = "";
+  String original_audio_path = "";
+  String normalized_audio_path = "";
+  int audio_duration_seconds = 0;
+
+  Future<void> saveAnalysisDataToJson() async {
+    if (transcription == null) {
+      print("Error: No hay transcripción para guardar.");
+      return;
+    }
+
+    // 1. Data Extraction
+    final String transcriptionPath = transcription_path;
+    final String originalAudioPath = original_audio_path;
+    final String normalizedAudioPath = normalized_audio_path;
+    final int audioDurationSeconds = audio_duration_seconds;
+
+    final int countDiffDeletions = transcription!.countDiffDeletions;
+    final int countDiffInsertions = transcription!.countDiffInsertions;
+    final int countDiffMatches = transcription!.countDiffMatches;
+
+    final int countTranscriptionWords = transcription!.countTranscriptionWords;
+    final int countReferenceWords = transcription!.countReferenceWords;
+
+    final List<Segment> segments = transcription!.wordAlignmentSegmentsWithPunctuation!;
+
+    // 2. Error Summary
+    Map<String, int> errorSummary = {};
+    for (String tag in availableTags.keys) {
+      errorSummary[tag] = 0;
+    }
+    for (Segment segment in segments) {
+      print("segment.tags: ${segment.tags}");
+      for (String tag in segment.tags) {
+        if (errorSummary.containsKey(tag)) {
+          errorSummary[tag] = errorSummary[tag]! + 1;
+        }
+      }
+    }
+
+    /*// 3. Transcription Analysis
+    List<Map<String, dynamic>> transcriptionAnalysis = [];
+    for (Segment segment in segments) {
+      if (segment.tags.isNotEmpty) {
+        List<Map<String, dynamic>> errors = [];
+        for (String tag in segment.tags) {
+          errors.add({"error_tag": tagToSymbol[tag], "error_type": tag});
+        }
+        transcriptionAnalysis.add({"index": segment.,"word": segment.word, "errors": errors});
+      }
+    }*/
+    // 3. Transcription Analysis
+    List<Map<String, dynamic>> transcriptionAnalysis = [];
+    for (int i = 0; i < segments.length; i++) {
+      Segment segment = segments[i];
+      if (segment.tags.isNotEmpty) {
+        List<Map<String, dynamic>> errors = [];
+        for (String tag in segment.tags) {
+          errors.add({"error_tag": tagToSymbol[tag], "error_type": tag});
+        }
+        transcriptionAnalysis.add({"index": i, "word": segment.word, "errors": errors});
+      }
+    }
+
+    // 4. JSON Structure
+    Map<String, dynamic> jsonData = {
+      "transcription_path": transcriptionPath,
+      "original_audio_path": originalAudioPath,
+      "normalized_audio_path": normalizedAudioPath,
+      "audio_duration_seconds": audioDurationSeconds,
+      "diff_analysis": {"insertions": countDiffInsertions, "deletions": countDiffDeletions, "matches": countDiffMatches},
+      "word_count": {"reference_text": countReferenceWords, "transcription": countTranscriptionWords},
+      "error_summary": errorSummary,
+      "transcription_analysis": transcriptionAnalysis,
+    };
+
+    // 5. JSON Encoding
+    String jsonString = jsonEncode(jsonData);
+
+    // 6. File Saving
+    // 6. File Download (Web-Specific)
+    if (kIsWeb) {
+      // Create a Blob object
+      final blob = html.Blob([jsonString], 'application/json');
+
+      // Create a URL for the Blob
+      final url = html.Url.createObjectUrlFromBlob(blob);
+
+      // Create an anchor element
+      final anchor =
+          html.document.createElement('a') as html.AnchorElement
+            ..href = url
+            ..style.display = 'none'
+            ..download = 'analysis_data.json';
+
+      // Add the anchor to the document
+      html.document.body!.children.add(anchor);
+
+      // Trigger a click event to start the download
+      anchor.click();
+
+      // Remove the anchor from the document
+      html.document.body!.children.remove(anchor);
+
+      // Release the URL
+      html.Url.revokeObjectUrl(url);
+    } else {
+      // 6. File Saving (Mobile/Desktop)
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/analysis_data.json');
+        await file.writeAsString(jsonString);
+        print("JSON data saved to: ${file.path}");
+      } catch (e) {
+        print("Error saving JSON data: $e");
+      }
+    }
+  }
+
+  Future<void> loadAnalysisDataFromJson() async {
+    if (kIsWeb) {
+      // Web-specific file loading
+      final html.FileUploadInputElement input = html.FileUploadInputElement();
+      input.accept = 'application/json';
+      input.click();
+
+      await input.onChange.first;
+      if (input.files!.isEmpty) return;
+      final html.File file = input.files!.first;
+      final html.FileReader reader = html.FileReader();
+      reader.readAsText(file);
+      await reader.onLoad.first;
+      final jsonString = reader.result as String;
+      _processLoadedJson(jsonString);
+    } else {
+      // Mobile/Desktop file loading
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/analysis_data.json');
+        final jsonString = await file.readAsString();
+        _processLoadedJson(jsonString);
+      } catch (e) {
+        print("Error loading JSON data: $e");
+      }
+    }
+  }
+
+  void _processLoadedJson(String jsonString) {
+    try {
+      final Map<String, dynamic> jsonData = jsonDecode(jsonString);
+
+      // 1. Data Extraction
+      transcription_path = jsonData["transcription_path"];
+      original_audio_path = jsonData["original_audio_path"];
+      normalized_audio_path = jsonData["normalized_audio_path"];
+      audio_duration_seconds = jsonData["audio_duration_seconds"];
+
+      final int countDiffDeletions = jsonData["diff_analysis"]["deletions"];
+      final int countDiffInsertions = jsonData["diff_analysis"]["insertions"];
+      final int countDiffMatches = jsonData["diff_analysis"]["matches"];
+
+      final int countTranscriptionWords = jsonData["word_count"]["transcription"];
+      final int countReferenceWords = jsonData["word_count"]["reference_text"];
+
+      // 2. Error Summary (Not used for loading, but could be used for display)
+      // final Map<String, int> errorSummary = Map<String, int>.from(jsonData["error_summary"]);
+
+      // 3. Transcription Analysis
+      final List<dynamic> transcriptionAnalysis = jsonData["transcription_analysis"];
+      List<Segment> newSegments = [];
+      if (transcription != null) {
+        // reset tags
+        transcription!.wordAlignmentSegmentsWithPunctuation.forEach((element) => element.tags.clear(),);
+
+        newSegments = List<Segment>.from(transcription!.wordAlignmentSegmentsWithPunctuation);
+        for (Map<String, dynamic> segmentData in transcriptionAnalysis) {
+          final int index = segmentData["index"];
+          if (index >= 0 && index < newSegments.length) {
+            // Create a copy of the segment to avoid modifying the original segment directly
+            Segment segment = newSegments[index].copyWith();
+            segment.tags.clear(); // Clear existing tags
+            final List<dynamic> errors = segmentData["errors"];
+            for (Map<String, dynamic> errorData in errors) {
+              segment.tags.add(errorData["error_type"]);
+            }
+            // Update the new list with the modified segment
+            newSegments[index] = segment;
+          }
+        }
+        // Update the transcription with the new list of segments
+        final newTranscription = transcription!.copyWith(
+          countDiffDeletions: countDiffDeletions,
+          countDiffInsertions: countDiffInsertions,
+          countDiffMatches: countDiffMatches,
+          countTranscriptionWords: countTranscriptionWords,
+          countReferenceWords: countReferenceWords,
+          wordAlignmentSegmentsWithPunctuation: newSegments, // Update with the new list
+        );
+        transcription = newTranscription;
+        emit(state.copyWith(transcription: newTranscription));
+      }
+    } catch (e) {
+      print("Error processing JSON data: $e");
+    }
+  }
+
+  /////////////////// Data input and comunication server
   void initSocket() {
     socket = IO.io('http://192.168.1.10:5000', <String, dynamic>{
       'transports': ['websocket'],
@@ -89,6 +308,8 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
       emit(state.copyWith(status: TranscriptionStatus.noserver));
     });
   }
+
+  
 
   Future<void> alignAudio(PlatformFile audioFile, String text) async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
@@ -244,53 +465,36 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   //////////////////////
 
-  String formatTextIntoParagraphs(String text) {
-    final lines = text.split('\n');
-    final paragraphs = <String>[];
-    final currentParagraph = StringBuffer();
+  Future<void> useReal(List<Map<String, dynamic>> listmap, String audioPath, String referenceText) async {
+    emit(state.copyWith(status: TranscriptionStatus.loading));
 
-    for (final line in lines) {
-      if (line.trim().isEmpty) {
-        if (currentParagraph.isNotEmpty) {
-          paragraphs.add(currentParagraph.toString().trim());
-          currentParagraph.clear();
-        }
-      } else {
-        currentParagraph.write('${line.trim()} ');
-      }
-    }
+    transcription = Transcription.fromListMap(listMap: listmap, shouldInsertPunctuation: true, referenceText: referenceText);
 
-    // Add the last paragraph if it's not empty
-    if (currentParagraph.isNotEmpty) {
-      paragraphs.add(currentParagraph.toString().trim());
-    }
-    //print(paragraphs.join('\n\n'));
-    return paragraphs.join('\n\n');
-  }
+    // Asignar el texto real a la transcripción
+    transcription?.referenceText = referenceText;
 
-  void resetState() {
-    emit(const TranscriptionState(status: TranscriptionStatus.loading));
+    await initAudioPlayer();
+    await audioPlayer.setSource(UrlSource(audioPath));
+
+    // Actualizar el estado
+    emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: referenceText));
+
+    _createSegmentIndexMap();
   }
 
   Future<void> useMockTranscriptionEU() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
-    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test_normalized.json');
-    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test0_normalized.json');
-    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test1_normalized.json');
-    //String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_test2_normalized.json');
+
     String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
-    //print("transcriptionWhisper jsonString --> $jsonString");
     List<dynamic> jsonList = json.decode(jsonString);
     List<Map<String, dynamic>> listMap = jsonList.map((item) => item as Map<String, dynamic>).toList();
 
-    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test0.txt');
-    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test1.txt');
-    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test2.txt');
-    //String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK_test.txt');
     String text = await rootBundle.loadString('assets/texto_ITSAS_IZARRAK.txt');
 
+    final formattedRawRealText = text;
+
     // Formatear el texto real usando la nueva función
-    final formattedRawRealText = formatTextIntoParagraphs(text);
+    //final formattedRawRealText = formatTextIntoParagraphs(text);
     //print("formattedRawRealText --> $formattedRawRealText");
 
     transcription = Transcription.fromListMap(listMap: listMap, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
@@ -298,16 +502,34 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     // Asignar el texto real a la transcripción
     transcription?.referenceText = formattedRawRealText;
 
-    // Llamar a la función para imprimir la información
-    //transcription.printWordAlignmentSegmentsInfo();
-
-    //initAudioPlayer();
     await initAudioPlayer();
     await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
 
     // Actualizar el estado
     emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
 
+    _createSegmentIndexMap();
+  }
+
+  Future<void> useMockTranscriptionES() async {
+    emit(state.copyWith(status: TranscriptionStatus.loading));
+
+    String text = await rootBundle.loadString('assets/texto_LA_TORTUGA_KALI.txt');
+    //print("text cargado del asset: $text");
+
+    final formattedRawRealText = text;
+    // Formatear el texto real usando la nueva función
+    //final formattedRawRealText = formatTextIntoParagraphs(text);
+    //print("formattedRawRealText --> $formattedRawRealText");
+
+    transcription = Transcription.fromListMap(listMap: textoTransMock, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
+
+    // Asignar el texto real a la transcripción
+    transcription?.referenceText = formattedRawRealText;
+
+    await initAudioPlayer();
+    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
+    emit(state.copyWith(status: TranscriptionStatus.loaded, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
     _createSegmentIndexMap();
   }
 
@@ -322,139 +544,88 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     }
   }
 
-  Future<void> useMockTranscriptionES() async {
-    emit(state.copyWith(status: TranscriptionStatus.loading));
-
-    String text = await rootBundle.loadString('assets/texto_LA_TORTUGA_KALI.txt');
-
-    // Formatear el texto real usando la nueva función
-    final formattedRawRealText = formatTextIntoParagraphs(text);
-    //print("formattedRawRealText --> $formattedRawRealText");
-
-    transcription = Transcription.fromListMap(listMap: textoTransMock, shouldInsertPunctuation: true, referenceText: formattedRawRealText);
-
-    // Asignar el texto real a la transcripción
-    transcription?.referenceText = formattedRawRealText;
-
-    /*String formattedText = formatTextIntoParagraphs(text);
-    textoRealformadoparrafos = formattedText;
-    transcription = Transcription.fromListMap(listMap: textoTransMock, referenceText: textoRealformadoparrafos);*/
-
-    // Imprimir información de las asociaciones
-    /*for (int i = 0; i < transcription!.audioTranscriptionSegments.length; i++) {
-      final segment = transcription!.audioTranscriptionSegments[i];
-      print("Segmento ${i + 1}:");
-      print("  Palabra transcrita: ${segment.word}");
-      print("  Palabra real: ${segment.realWord}");
-      print("  Palabras transcritas asociadas: ${segment.transcribedWords}");
-      print("  Probabilidades de las palabras transcritas: ${segment.transcribedWordsProbabilities}");
-      print("  Asociación: ${segment.wordAssociation != null ? 'Sí' : 'No'}");
-      if (segment.wordAssociation != null) {
-        print("    Palabras transcritas asociadas: ${segment.wordAssociation!.transcribedWords}");
-        print("    Palabra real asociada: ${segment.wordAssociation!.realWord}");
-        print("    Probabilidades de las palabras transcritas asociadas: ${segment.wordAssociation!.transcribedWordsProbabilities}");
-      }
-    }*/
-
-    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
-    emit(state.copyWith(status: TranscriptionStatus.loaded, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
-    _createSegmentIndexMap();
-
-  }
-
-  ///////////////////
-
   void toggleEditMode() {
     emit(state.copyWith(editMode: !state.editMode));
   }
 
-  void addTagToSegment(int index, String tag) {
-    /*if (state.transcription == null || index < 0 || index >= state.transcription!.transcribedSegments.length) {
-      return;
-    }
-    final segment = state.transcription!.transcribedSegments[index];
-    final newTags = List<String>.from(segment.tags)..add(tag);
-    final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.transcribedSegments)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));*/
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
-      return;
-    }
-    final segment = state.transcription!.rawReferenceTextSegments![index];
-    final newTags = List<String>.from(segment.tags)..add(tag);
-    final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(rawReferenceTextSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));
+  void togglePlayAndStopWordOnSelect() {
+    emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
   }
 
-  void removeTagFromSegment(int index, String tag) {
-    /*if (state.transcription == null || index < 0 || index >= state.transcription!.transcribedSegments.length) {
-      return;
-    }
-    final segment = state.transcription!.transcribedSegments[index];
-    final newTags = List<String>.from(segment.tags)..remove(tag);
-    final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.transcribedSegments)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(transcriptionSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));*/
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
-      return;
-    }
-    final segment = state.transcription!.rawReferenceTextSegments![index];
-    final newTags = List<String>.from(segment.tags)..remove(tag);
-    final newSegment = segment.copyWith(tags: newTags);
-    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(rawReferenceTextSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));
-  }
-
-  void editSegment(Segment newSegment) {
-    if (state.transcription == null) return;
-    final index = state.transcription!.rawReferenceTextSegments!.indexOf(newSegment);
-    if (index == -1) return;
-    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..[index] = newSegment;
-    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));
-  }
-
-  void editSegments(List<int> indexes, String newText) {
-    if (state.transcription == null || indexes.isEmpty) return;
-    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!);
-    for (int index in indexes) {
-      if (index >= 0 && index < newSegments.length) {
-        final segment = newSegments[index];
-        final newSegment = segment.copyWith(word: newText);
-        newSegments[index] = newSegment;
-      }
-    }
-    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));
-  }
-
-  void deleteSegment(int index) {
-    if (state.transcription == null || index < 0 || index >= state.transcription!.rawReferenceTextSegments!.length) {
-      return;
-    }
-    final newSegments = List<Segment>.from(state.transcription!.rawReferenceTextSegments!)..removeAt(index);
-    final newTranscription = state.transcription!.copyWith(audioTranscriptionSegments: newSegments);
-    emit(state.copyWith(transcription: newTranscription));
+  void resetState() {
+    emit(const TranscriptionState(status: TranscriptionStatus.loading));
   }
 
   void setAutoScroll(bool value) {
     _autoScrollEnabled = value;
   }
 
+  /////////////////// Tags
+
+  /*void addTagToSegment(int index, String tag) {
+    print("Add Tag: $tag a ${state.transcription!.wordAlignmentSegmentsWithPunctuation![index].word}");
+    if (state.transcription == null || index < 0 || index >= state.transcription!.wordAlignmentSegmentsWithPunctuation!.length) {
+      return;
+    }
+    final segment = state.transcription!.wordAlignmentSegmentsWithPunctuation![index];
+    final newTags = List<String>.from(segment.tags)..add(tag);
+    final newSegment = segment.copyWith(tags: newTags);
+    // Print the segment after adding the tag
+    print("Segment after adding tag: $segment");
+
+    final newSegments = List<Segment>.from(state.transcription!.wordAlignmentSegmentsWithPunctuation!)..[index] = newSegment;
+    final newTranscription = state.transcription!.copyWith(wordAlignmentSegmentsWithPunctuation: newSegments);
+    emit(state.copyWith(transcription: newTranscription));
+    print("wordAlignmentSegmentsWithPunctuation after adding tag: ${transcription!.wordAlignmentSegmentsWithPunctuation}");
+  }*/
+
+  void addTagToSegment(int segmentIndex, String tag) {
+    // Check if the segmentIndex is valid
+    if (segmentIndex >= 0 && segmentIndex < transcription!.wordAlignmentSegmentsWithPunctuation!.length) {
+      print("Add Tag: $tag a ${state.transcription!.wordAlignmentSegmentsWithPunctuation![segmentIndex].word} con indice: $segmentIndex");
+      // Get the segment
+      Segment segment = transcription!.wordAlignmentSegmentsWithPunctuation![segmentIndex];
+
+      // Add the tag to the segment
+      segment.tags.add(tag);
+
+      // Rebuild the widget
+      final newSegments = List<Segment>.from(state.transcription!.wordAlignmentSegmentsWithPunctuation!)..[segmentIndex] = segment;
+      final newTranscription = state.transcription!.copyWith(wordAlignmentSegmentsWithPunctuation: newSegments);
+      emit(state.copyWith(transcription: newTranscription));
+    } else {
+      print("Error: Invalid segment index: $segmentIndex");
+    }
+  }
+
+  void removeTagFromSegment(int segmentIndex, String tag) {
+    print("Remove Tag: $tag a ${state.transcription!.wordAlignmentSegmentsWithPunctuation![segmentIndex].word}");
+    if (segmentIndex >= 0 && segmentIndex < transcription!.wordAlignmentSegmentsWithPunctuation!.length) {
+      print("Remove Tag: $tag from ${state.transcription!.wordAlignmentSegmentsWithPunctuation![segmentIndex].word} with index: $segmentIndex");
+      // Get the segment
+      Segment segment = transcription!.wordAlignmentSegmentsWithPunctuation![segmentIndex];
+
+      // Check if the tag exists in the segment
+      if (segment.tags.contains(tag)) {
+        // Remove the tag from the segment
+        segment.tags.remove(tag);
+
+        // Rebuild the widget
+        final newSegments = List<Segment>.from(state.transcription!.wordAlignmentSegmentsWithPunctuation!)..[segmentIndex] = segment;
+        final newTranscription = state.transcription!.copyWith(wordAlignmentSegmentsWithPunctuation: newSegments);
+        emit(state.copyWith(transcription: newTranscription));
+      } else {
+        print("Error: Tag '$tag' not found in segment with index: $segmentIndex");
+      }
+    } else {
+      print("Error: Invalid segment index: $segmentIndex");
+    }
+  }
+
   ////////////// audio sync
 
   void stopAudioPlayer() async {
     await audioPlayer.stop();
-  }
-  Future<void> restartAudioPlayer() async {
-    //await audioPlayer.stop();
-    //await audioPlayer.setSource(BytesSource(Uint8List(0)));
-    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
   }
 
   Future<void> initAudioPlayer() async {
@@ -476,6 +647,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     print("-- initAudioPlayer Nuevo -- ${audioPlayer.playerId}");
     audioPlayer.onDurationChanged.listen((Duration d) {
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioDuration: d)));
+      audio_duration_seconds = d.inSeconds;
     });
     audioPlayer.onPositionChanged.listen((Duration p) {
       emit(state.copyWith(extradata: state.extradata?.copyWith(audioPosition: p)));
@@ -494,7 +666,6 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     });
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: 0, currentAssociatedWordIndex: 0)));
   }
-
 
   // Actualiza la palabra actual basándose en la posición del audio
   void updateCurrentWord() {
@@ -516,7 +687,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     //print("sssssssssssssss palabra de la transcripcion: $currentAudioWordIndex. ${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].word}");
 
     // Buscar en wordAlignmentSegments
-    if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegments!.isNotEmpty) {
+    if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegmentsWithPunctuation!.isNotEmpty) {
       // Si de la posicion del audo encontro la palabra en audioTranscriptionSegments
       if (state.extradata!.currentWordIndex != null || currentAudioWordIndex != -1) {
         final forcedSegment = state.transcription!.audioTranscriptionSegments[state.extradata!.currentWordIndex!];
@@ -525,8 +696,8 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
           // Buscar la asociación correcta para la nueva palabra
           final segmentKey =
               "${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].start}-${state.transcription!.audioTranscriptionSegments[currentAudioWordIndex].end}";
-          for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-            final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+          for (int i = 0; i < state.transcription!.wordAlignmentSegmentsWithPunctuation!.length; i++) {
+            final associatedSegment = state.transcription!.wordAlignmentSegmentsWithPunctuation![i];
             if (associatedSegment.transcribedIndex == _segmentIndexMap[segmentKey]) {
               currentAssociatedWordIndex = i;
               break;
@@ -548,88 +719,6 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: currentAudioWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
     //print("Fin -- updateCurrentWord");
   }
-  /*void updateCurrentWord() {
-    print("sssssssssssssss");
-    if (audioPlayer.state != PlayerState.playing) return; // Comprobar si el audio se esta reproduciendo
-    if (state.transcription == null) return;
-    final currentPosition = state.extradata!.audioPosition;
-    if (currentPosition == null) return;
-    final currentMillis = currentPosition.inMilliseconds;
-    int currentWordIndex = -1;
-    int currentAssociatedWordIndex = -1;
-    // Buscar en audioTranscriptionSegments
-    if (state.transcription!.audioTranscriptionSegments.isNotEmpty) {
-      currentWordIndex = _binarySearch(state.transcription!.audioTranscriptionSegments, currentMillis);
-    }
-    // Buscar en wordAlignmentSegments
-    if (state.transcription!.wordAlignmentSegments != null && state.transcription!.wordAlignmentSegments!.isNotEmpty) {
-      currentAssociatedWordIndex = _binarySearchAssociated(state.transcription!.wordAlignmentSegments!, currentMillis);
-      if(currentAssociatedWordIndex == -1 && currentWordIndex != -1){
-        currentAssociatedWordIndex = _binarySearchAssociated(state.transcription!.wordAlignmentSegments!, currentMillis);
-      }
-      if (_isForceCurrentWord) {
-        // Check if the current position is outside the bounds of the forced word
-        if (state.extradata!.currentWordIndex != null) {
-          final forcedSegment = state.transcription!.audioTranscriptionSegments[state.extradata!.currentWordIndex!];
-          if (currentMillis < (forcedSegment.start * 1000).toInt() || currentMillis > (forcedSegment.end * 1000).toInt()) {
-            _isForceCurrentWord = false; // Reset the flag
-            currentAssociatedWordIndex = -1;
-          } else {
-            return; // Do nothing if a word is being forced
-          }
-        }
-      }
-    }
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: currentWordIndex, currentAssociatedWordIndex: currentAssociatedWordIndex)));
-  }*/
-
-  /////////////probarlu ego
-  // Fuerza la palabra actual a un índice específico (cuando el usuario hace clic)
-  /*void forceCurrentWord(int index) {
-    if (state.transcription == null || state.transcription!.audioTranscriptionSegments.isEmpty) return;
-    final now = DateTime.now();
-    if (_lastForceCurrentWordCall != null && now.difference(_lastForceCurrentWordCall!) < _forceCurrentWordDebounceTime) {
-      return; // Evita llamadas muy seguidas
-    }
-    _lastForceCurrentWordCall = now;
-    _isForceCurrentWord = true; // Indicar que se ha forzado la palabra
-    final segment = state.transcription!.audioTranscriptionSegments[index];
-    final startMillis = (segment.start * 1000).toInt();
-
-    // Check if the audio is playing
-    if (audioPlayer.state == PlayerState.playing) {
-      audioPlayer.pause(); // Pause if playing
-    } else {
-      audioPlayer.seek(Duration(milliseconds: startMillis)); // Seek to the new position
-      audioPlayer.resume(); // Resume if not playing
-    }
-
-    // Buscar el indice de la palabra asociada
-    int associatedWordIndex = -1;
-    if(state.transcription!.wordAlignmentSegments != null){
-      // Buscar la palabra asociada correcta
-      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-        final associatedSegment = state.transcription!.wordAlignmentSegments![i];
-        // Comprobar si la palabra asociada coincide con la palabra en la que se hizo clic
-        if (associatedSegment.audioSegmentIndex == index) {
-          associatedWordIndex = i;
-          break;
-        }
-      }
-      // Si no se encontró una asociación directa, buscar la coincidencia más cercana
-      if (associatedWordIndex == -1) {
-        for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-          final associatedSegment = state.transcription!.wordAlignmentSegments![i];
-          if (associatedSegment.start == segment.start && associatedSegment.end == segment.end) {
-            associatedWordIndex = i;
-            break;
-          }
-        }
-      }
-    }
-    print("llamado forceCurrentWord con index $index : resultado: currentWordIndex $index associatedWordIndex $associatedWordIndex");
-    emit(state.copyWith(extradata: state.extradata?.copyWith(currentWordIndex: index, currentAssociatedWordIndex: associatedWordIndex)));
-  }*/
 
   // Fuerza la palabra actual a un índice específico (cuando el usuario hace clic)
   void forceCurrentWord(int index) {
@@ -653,9 +742,9 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
     // Buscar el indice de la palabra asociada
     int associatedWordIndex = -1;
-    if (state.transcription!.wordAlignmentSegments != null) {
-      for (int i = 0; i < state.transcription!.wordAlignmentSegments!.length; i++) {
-        final associatedSegment = state.transcription!.wordAlignmentSegments![i];
+    if (state.transcription!.wordAlignmentSegmentsWithPunctuation != null) {
+      for (int i = 0; i < state.transcription!.wordAlignmentSegmentsWithPunctuation!.length; i++) {
+        final associatedSegment = state.transcription!.wordAlignmentSegmentsWithPunctuation![i];
         if (associatedSegment.start == segment.start && associatedSegment.end == segment.end) {
           associatedWordIndex = i;
           break;
@@ -685,192 +774,5 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
       }
     }
     return -1; // No encontrado
-  }
-
-  // Búsqueda binaria en la lista de segmentos alineados con el texto real
-  int _binarySearchAssociated(List<Segment> segments, int target) {
-    //print("_binarySearchAssociated");
-    int left = 0;
-    int right = segments.length - 1;
-    while (left <= right) {
-      int mid = left + ((right - left) ~/ 2);
-      final segment = segments[mid];
-      final startMillis = (segment.start * 1000).toInt();
-      final endMillis = (segment.end * 1000).toInt();
-      if (target >= startMillis && target < endMillis) {
-        // Cambio aquí: target < endMillis
-        return mid; // Encontrado
-      } else if (target < startMillis) {
-        right = mid - 1; // Buscar en la mitad izquierda
-      } else {
-        left = mid + 1; // Buscar en la mitad derecha
-      }
-    }
-    return -1; // No encontrado
-  }
-
-  void togglePlayAndStopWordOnSelect() {
-    emit(state.copyWith(extradata: state.extradata?.copyWith(playAndStopWordOnSelect: !state.extradata!.playAndStopWordOnSelect)));
-  }
-  /////////////////
-
-  void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
-    List<String> selectedTags = [];
-    if (selectedIndexes.isNotEmpty) {
-      selectedTags = state.transcription!.rawReferenceTextSegments![selectedIndexes.first].tags;
-    } else {
-      final index = _getSegmentIndexFromOffset(position);
-      if (index != -1) {
-        selectedTags = state.transcription!.rawReferenceTextSegments![index].tags;
-      }
-    }
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          content: SegmentContextMenu(
-            availableTags: availableTags.keys.toList(),
-            selectedTags: selectedTags,
-            editMode: state.editMode,
-            onTagAdded: (tag) {
-              if (selectedIndexes.isNotEmpty) {
-                for (int index in selectedIndexes) {
-                  addTagToSegment(index, tag);
-                }
-              } else {
-                final index = _getSegmentIndexFromOffset(position);
-                if (index != -1) {
-                  addTagToSegment(index, tag);
-                }
-              }
-            },
-            onTagRemoved: (tag) {
-              if (selectedIndexes.isNotEmpty) {
-                for (int index in selectedIndexes) {
-                  removeTagFromSegment(index, tag);
-                }
-              } else {
-                final index = _getSegmentIndexFromOffset(position);
-                if (index != -1) {
-                  removeTagFromSegment(index, tag);
-                }
-              }
-            },
-            onEdit: () {
-              Navigator.of(context).pop();
-              if (selectedIndexes.isNotEmpty) {
-                _editSegments(context, selectedIndexes);
-              } else {
-                final index = _getSegmentIndexFromOffset(position);
-                if (index != -1) {
-                  _editSegment(context, index);
-                }
-              }
-            },
-            onDelete: () {
-              Navigator.of(context).pop();
-              if (selectedIndexes.isNotEmpty) {
-                for (int index in selectedIndexes) {
-                  deleteSegment(index);
-                }
-              } else {
-                final index = _getSegmentIndexFromOffset(position);
-                if (index != -1) {
-                  deleteSegment(index);
-                }
-              }
-            },
-            selectedIndexes: selectedIndexes,
-          ),
-        );
-      },
-    );
-  }
-
-  int _getSegmentIndexFromOffset(Offset position) {
-    if (state.transcription == null) return -1;
-    final RenderBox box = scrollController.position.context.storageContext.findRenderObject() as RenderBox;
-    final result = BoxHitTestResult();
-    final local = box.globalToLocal(position);
-    if (box.hitTest(result, position: local)) {
-      for (final hit in result.path) {
-        final target = hit.target;
-        if (target is RenderParagraph) {
-          final offset = target.getPositionForOffset(local);
-          final wordIndex = offset.offset;
-          return wordIndex;
-        }
-      }
-    }
-    return -1;
-  }
-
-  void _editSegment(BuildContext context, int index) {
-    final segment = state.transcription!.rawReferenceTextSegments![index];
-    String newText = segment.word;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Segmento'),
-          content: TextField(
-            controller: TextEditingController(text: newText),
-            onChanged: (value) {
-              newText = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                final newSegment = segment.copyWith(word: newText);
-                editSegment(newSegment);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _editSegments(BuildContext context, List<int> indexes) {
-    if (indexes.isEmpty) return;
-    String newText = state.transcription!.rawReferenceTextSegments![indexes.first].word;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Segmentos'),
-          content: TextField(
-            controller: TextEditingController(text: newText),
-            onChanged: (value) {
-              newText = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                editSegments(indexes, newText);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

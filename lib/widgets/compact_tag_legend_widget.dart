@@ -15,7 +15,7 @@ class CompactTagLegendWidget extends StatelessWidget {
           return const Center(child: Text("No hay datos para mostrar."));
         }
         final transcription = state.transcription!;
-        final Map<String, int> tagCounts = _calculateTagCounts(transcription.rawReferenceTextSegments ?? []);
+        final Map<String, int> tagCounts = _calculateTagCounts(transcription.referenceTextRawSegments ?? []);
         final int totalErrors = tagCounts.values.fold(0, (sum, count) => sum + count);
         // Ordenar los tags alfabéticamente
         final sortedTags = TranscriptionCubit.availableTags.entries.toList()..sort((a, b) => a.key.compareTo(b.key));

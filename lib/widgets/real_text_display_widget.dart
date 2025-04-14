@@ -85,7 +85,7 @@ class RealTextDisplayWidgetState extends TranscriptionWidgetState<RealTextDispla
         }
         final transcription = state.transcription!;
         // Usar rawRealTextSegments en lugar de crear nuevos segmentos
-        List<Segment> segments = transcription.rawReferenceTextSegments ?? [];
+        List<Segment> segments = transcription.referenceTextRawSegments ?? [];
 
         return Listener(
           onPointerSignal: _handlePointerSignal,

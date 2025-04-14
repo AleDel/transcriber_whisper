@@ -49,10 +49,6 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     }
   }
 
-  /*void showContextMenu(BuildContext context, Offset position, List<int> selectedIndexes) {
-    getIt<TranscribeCubit>().showContextMenu(context, position, selectedIndexes);
-  }*/
-
   /////// nuevo
   List<String> _getSelectedTags() {
     if (_selectedIndexes.isEmpty) {
@@ -62,8 +58,8 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     final sessionCubit = getIt<TranscriptionCubit>();
     if (sessionCubit.state.transcription == null) return [];
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.rawReferenceTextSegments!.length) {
-        tags.addAll(sessionCubit.state.transcription!.rawReferenceTextSegments![i].tags);
+      if (i >= 0 && i < sessionCubit.state.transcription!.referenceTextRawSegments!.length) {
+        tags.addAll(sessionCubit.state.transcription!.wordAlignmentSegmentsWithPunctuation![i].tags);
       }
     }
     return tags.toSet().toList();
@@ -80,78 +76,39 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       context: context,
       position: RelativeRect.fromRect(position & const Size(40, 40), Offset.zero & overlay.size),
       items: <PopupMenuEntry>[
-        /*PopupMenuItem(
-          value: 'edit',
-          child: ListTile(
-            leading: const Icon(Icons.edit),
-            title: const Text('Editar'),
-          ),
-          onTap: () {
-            if (_selectedIndexes.isNotEmpty) {
-              if (_selectedIndexes.length == 1) {
-                _editSegment(context, _selectedIndexes.first);
-              } else {
-                _editSegments(context, _selectedIndexes);
-              }
-            }
-          },
-        ),*/
-        /*PopupMenuItem(
-          child:  Text('"${getIt<Transcription>().transsegments[_selectedIndexes.first].word}"'),
-        ),*/
         const PopupMenuDivider(),
-        PopupMenuItem(
-          child: const Text('Seleccionar'),
-          onTap: () {
-            if (wordIndexes != null) {
-              setState(() {
-                _selectedIndexes.addAll(wordIndexes);
-              });
-            }
-          },
-        ),
-        PopupMenuItem(
-          child: const Text('Des-Seleccionar'),
-          onTap: () {
-            if (wordIndexes != null) {
-              setState(() {
-                _selectedIndexes.removeWhere((element) => wordIndexes.contains(element));
-              });
-            }
-          },
-        ),
+        PopupMenuItem( child: Center(child: Text( '${getIt<TranscriptionCubit>().transcription?.wordAlignmentSegmentsWithPunctuation[wordIndexes!.first].word}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold), textAlign:TextAlign.center))),
         const PopupMenuDivider(),
         if (_selectedIndexes.isNotEmpty)
-          PopupMenuItem(
-            value: 'delete',
-            child: ListTile(leading: const Icon(Icons.delete), title: const Text('Eliminar')),
-            onTap: () {
-              if (_selectedIndexes.isNotEmpty) {
-                for (int index in _selectedIndexes) {
-                  getIt<TranscriptionCubit>().deleteSegment(index);
+          ..._availableTags.entries.map((entry) {
+            final String tag = entry.key;
+            final String symbol = TranscriptionCubit.tagToSymbol[tag] ?? tag;
+            final Color color = entry.value;
+            final bool isSelected = selectedTags.contains(tag);
+            return PopupMenuItem<String>(
+              value: tag,
+              //child: ListTile(leading: Icon(Icons.tag, color: color), title: Text(symbol), trailing: isSelected ? const Icon(Icons.check) : null),
+              child: Row(
+                children: [
+                  SizedBox(width:50, child: Chip(label: Text(symbol, textAlign: TextAlign.center,),backgroundColor: color,)),
+                  //Icon(Icons.tag, color: color),
+                  const SizedBox(width: 8),
+                  Text(tag, style:TextStyle(color: color),),
+                  const Spacer(),
+                  if (isSelected) const Icon(Icons.check),
+                ],
+              ),
+              onTap: () {
+                _tagSelected = true;
+                if (isSelected) {
+                  _removeTagFromSelection(tag);
+                } else {
+                  _applyTagToSelection(tag);
                 }
-              }
-            },
-          ),
-        ..._availableTags.entries.map((entry) {
-          final String tag = entry.key;
-          final String symbol = TranscriptionCubit.tagToSymbol[tag] ?? tag;
-          final Color color = entry.value;
-          final bool isSelected = selectedTags.contains(tag);
-          return PopupMenuItem<String>(
-            value: tag,
-            child: ListTile(leading: Icon(Icons.tag, color: color), title: Text(symbol), trailing: isSelected ? const Icon(Icons.check) : null),
-            onTap: () {
-              _tagSelected = true;
-              if (isSelected) {
-                _removeTagFromSelection(tag);
-              } else {
-                _applyTagToSelection(tag);
-              }
-              setState(() {});
-            },
-          );
-        }).toList(),
+                setState(() {});
+              },
+            );
+          }).toList(),
       ],
     );
     if (!_tagSelected) {
@@ -161,23 +118,6 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
     }
   }
 
-  void _editSegment(BuildContext context, int index) {
-    final sessionCubit = getIt<TranscriptionCubit>();
-    if (sessionCubit.state.transcription == null) return;
-    final segment = sessionCubit.state.transcription!.rawReferenceTextSegments![index];
-    showDialog(
-      context: context,
-      builder: (context) {
-        return SegmentEditor(
-          segment: segment,
-          onSave: (newSegment) {
-            getIt<TranscriptionCubit>().editSegment(newSegment);
-          },
-        );
-      },
-    );
-  }
-
   void _applyTagToSelection(String tag) {
     final transcriberCubit = getIt<TranscriptionCubit>();
     if (transcriberCubit.state.transcription == null) return;
@@ -185,7 +125,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < transcriberCubit.state.transcription!.rawReferenceTextSegments!.length) {
+      if (i >= 0 && i < transcriberCubit.state.transcription!.referenceTextRawSegments!.length) {
         transcriberCubit.addTagToSegment(i, tag);
       }
     }
@@ -201,7 +141,7 @@ abstract class TranscriptionWidgetState<T extends TranscriptionWidget> extends S
       return;
     }
     for (int i in _selectedIndexes) {
-      if (i >= 0 && i < sessionCubit.state.transcription!.rawReferenceTextSegments!.length) {
+      if (i >= 0 && i < sessionCubit.state.transcription!.referenceTextRawSegments!.length) {
         sessionCubit.removeTagFromSegment(i, tag);
       }
     }

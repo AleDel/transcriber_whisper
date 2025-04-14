@@ -26,7 +26,7 @@ class _TagLegendWidgetState extends State<TagLegendWidget> {
     final state = context.read<TranscriptionCubit>().state;
     if (state.transcription == null) return;
     final transcription = state.transcription!;
-    final segmentData = _getSegmentData(transcription.rawReferenceTextSegments ?? []);
+    final segmentData = _getSegmentData(transcription.referenceTextRawSegments ?? []);
     if (_segmentData != segmentData) {
       _segmentData = segmentData;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,7 +43,7 @@ class _TagLegendWidgetState extends State<TagLegendWidget> {
           return const Center(child: Text("No hay datos para mostrar."));
         }
         final transcription = state.transcription!;
-        final Map<String, int> tagCounts = _calculateTagCounts(transcription.rawReferenceTextSegments ?? []);
+        final Map<String, int> tagCounts = _calculateTagCounts(transcription.referenceTextRawSegments ?? []);
         // Calcular el total de errores
         final int totalErrors = tagCounts.values.fold(0, (sum, count) => sum + count);
         // Ordenar los tags alfabéticamente
@@ -79,7 +79,7 @@ class _TagLegendWidgetState extends State<TagLegendWidget> {
                     final Color color = entry.value;
                     final String symbol = TranscriptionCubit.tagToSymbol[tag] ?? tag;
                     final int count = tagCounts[tag] ?? 0;
-                    final List<String> taggedWords = _findTaggedWords(transcription.rawReferenceTextSegments ?? [], tag);
+                    final List<String> taggedWords = _findTaggedWords(transcription.referenceTextRawSegments ?? [], tag);
                     return _buildTagItem(context, tag, symbol, color, count, taggedWords);
                   }).toList(),
                 ),

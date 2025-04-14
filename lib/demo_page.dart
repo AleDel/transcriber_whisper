@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:transcriber_whisper/models/segment.dart';
 import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
-import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/audio_drop_zone.dart';
 import 'package:transcriber_whisper/widgets/compact_tag_legend_widget.dart';
 import 'package:transcriber_whisper/widgets/loadingWidget.dart';
@@ -12,10 +10,7 @@ import 'package:transcriber_whisper/widgets/punctuation_error_legend_widget.dart
 import 'package:transcriber_whisper/widgets/reading_mode_form.dart';
 import 'package:transcriber_whisper/widgets/reading_speed_form.dart';
 import 'package:transcriber_whisper/widgets/real_text_display_widget.dart';
-import 'package:transcriber_whisper/widgets/selectableRichText_widget.dart';
-import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
 import 'package:transcriber_whisper/widgets/tag_legend_widget.dart';
-import 'package:transcriber_whisper/widgets/vertical_widget.dart';
 
 import 'models/audioFileInfo.dart';
 
@@ -99,15 +94,7 @@ class _DemoPageState extends State<DemoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Demo Page'),
-        actions: [
-          SizedBox(
-            width: 500,
-            child: AudioDropZone(onFilesChanged: _onFilesChanged, onFilesReady: _onFilesReady),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Demo Page'), actions: [SizedBox(width: 500, child: AudioDropZone(onFilesChanged: _onFilesChanged, onFilesReady: _onFilesReady))]),
       body: Stack(
         children: [
           BlocBuilder<TranscriptionCubit, TranscriptionState>(
@@ -128,33 +115,33 @@ class _DemoPageState extends State<DemoPage> {
                     // interfaz grafica principal
                     state.transcription != null
                         ? Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            TagLegendWidget(onSegmentDataChanged: _updateSegmentData),
-                            Row(
+                          child: SingleChildScrollView(
+                            child: Column(
                               children: [
-                                Flexible(
-                                  child: Column(
-                                    children: [
-                                      ReadingSpeedForm(onTimeChanged: _updateReadingSpeedTime),
-                                      SizedBox(
-                                        height: 100,
-                                        child: RealTextDisplayWidget(transcription: state.transcription!, audioPosition: Duration(), currentWordIndex: 0, onWordTap: (int) {}),
+                                TagLegendWidget(onSegmentDataChanged: _updateSegmentData),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Column(
+                                        children: [
+                                          ReadingSpeedForm(onTimeChanged: _updateReadingSpeedTime),
+                                          SizedBox(
+                                            height: 100,
+                                            child: RealTextDisplayWidget(transcription: state.transcription!, audioPosition: Duration(), currentWordIndex: 0, onWordTap: (int) {}),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Flexible(child: ReadingModeForm(onModesChanged: _updateSelectedReadingModes)),
+                                  ],
                                 ),
-                                Flexible(child: ReadingModeForm(onModesChanged: _updateSelectedReadingModes)),
+                                Row(children: [Flexible(child: CompactTagLegendWidget()), Flexible(child: PunctuationErrorLegendWidget())]),
+
+                                ElevatedButton(onPressed: _saveAllData, child: const Text("Guardar")),
                               ],
                             ),
-                            Row(children: [Flexible(child: CompactTagLegendWidget()), Flexible(child: PunctuationErrorLegendWidget())]),
-
-                            ElevatedButton(onPressed: _saveAllData, child: const Text("Guardar")),
-                          ],
-                        ),
-                      ),
-                    )
+                          ),
+                        )
                         : Container(),
                   ],
                 ),
