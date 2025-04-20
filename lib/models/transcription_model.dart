@@ -84,6 +84,7 @@ class Transcription {
           }
         }
       }
+      //audioTranscriptionSegments.forEach((element) => print(element),);
       audioTranscriptionWords = audioTranscriptionWords.map((e) => e.toLowerCase().trim()).toList();
       audioTranscriptionWords = audioTranscriptionWords.where((element) => element.isNotEmpty).toList();
 
@@ -206,59 +207,6 @@ class Transcription {
     return segments;
   }
 
-  void printWordAlignmentSegmentsInfo() {
-    var aa = referenceTextOnlyWordsSegments
-        .asMap()
-        .entries
-        .map((entry) {
-          int index = entry.key;
-          Segment segment = entry.value;
-          return "$index. ${segment.word}";
-        })
-        .join(" ");
-    print("referenceTextSegments con indices: $aa");
-    var bb = audioTranscriptionSegments
-        .asMap()
-        .entries
-        .map((entry) {
-          int index = entry.key;
-          Segment segment = entry.value;
-          return "$index. ${segment.word}";
-        })
-        .join(" ");
-    print("audioTranscriptionSegments con indices: $bb");
-    print("Información de Segmentos Alineados:");
-    print("----------------------------------");
-    for (int i = 0; i < wordAlignmentSegments.length; i++) {
-      Segment segment = wordAlignmentSegments[i];
-      print("Segmento numero: ${i + 1}");
-      print("Palabra de Referencia: ${segment.realIndex} --> ${segment.realWord}");
-      print("Palabra de la Transcripción: ${segment.transcribedIndex} --> ${segment.word}");
-      print("Tipo de Alineación: ${segment.associationType == AssociationType.similar ? 'similar' : segment.associationType}");
-      print("Distancia Levenshtein: ${segment.levenshteinDistance}");
-      print("Probabilidad: ${segment.probability}");
-      print("Inicio: ${segment.start}, Fin: ${segment.end}");
-      print("  Palabras de la Transcripción Asociadas: ${segment.transcribedWords.join(", ")}");
-      print("  Probabilidades Asociadas: ${segment.transcribedWordsProbabilities.join(", ")}");
-      print("  rawReferenceOrder: ${segment.rawRealOrder}");
-      if (segment.associationType == AssociationType.inserted) {
-        if (segment.realWordBeforeIndex != null && segment.realWordAfterIndex != null) {
-          print("  Posiciónen el texto de referencia: Entre ${segment.realWordBeforeIndex} y ${segment.realWordAfterIndex}");
-        } else if (segment.realWordBeforeIndex != null) {
-          print("  Posiciónen el texto de referencia: Después de ${segment.realWordBeforeIndex}");
-        } else if (segment.realWordAfterIndex != null) {
-          print("  Posiciónen el texto de referencia: Antes de ${segment.realWordAfterIndex}");
-        } else {
-          print("  Posiciónen el texto de referencia: Al final");
-        }
-      }
-      if (segment.associationType == AssociationType.deleted) {
-        print("  Posición en el audio: Entre ${segment.realWordBeforeEnd} y ${segment.realWordAfterStart}");
-      }
-      print("----------------------------------");
-    }
-  }
-
   // Crea Segmentos que son la comparacion entre el texto de referencia y la transcripcion
   void associateWords() {
     print("associateWords - Inicio");
@@ -271,7 +219,7 @@ class Transcription {
 
     // Crear listas de palabras para el algoritmo diff, convirtiendo a minúsculas
     List<String> referenceWords = referenceTextOnlyWordsSegments.map((s) => s.word.toLowerCase()).toList();
-    List<String> transcriptionWords = audioTranscriptionSegments.map((s) => s.word.toLowerCase()).toList();
+    List<String> transcriptionWords = audioTranscriptionWords;// audioTranscriptionSegments.map((s) => s.word.toLowerCase()).toList();
     //audioTranscriptionSegments.forEach((element) => print("audioTranscriptionSegments words -> ${element.word}"));
     //referenceTextOnlyWordsSegments.forEach((element) => print("referenceTextSegments words -> ${element.word}"));
 

@@ -1,11 +1,12 @@
 {
-    "name": "transcriber_whisper",
-    "short_name": "transcriber_whisper",
-    "start_url": ".",
+    "name": "Transcriber Whisper",
+    "short_name": "Transcriber",
+    "id": "/",
+    "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Transcription Viewer",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
@@ -30,6 +31,22 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/screenshot_app_desktop.png",
+            "sizes": "1000x608",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Desktop Screenshot"
+        },
+        {
+            "src": "screenshots/screenshot_app_mobile.png",
+            "sizes": "360x562",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Mobile Screenshot"
         }
     ]
 }

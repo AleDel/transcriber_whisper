@@ -1,48 +1,105 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
-import 'package:transcriber_whisper/widgets/associated_segments_table.dart'; // Importa el widget
+import 'package:transcriber_whisper/widgets/loadingWidget.dart';
 
 class TranscribePage extends StatefulWidget {
+  final String? filePath;
+  const TranscribePage({Key? key, this.filePath}) : super(key: key);
+
   @override
-  State<TranscribePage> createState() => _TranscribePageState();
+  _TranscribePageState createState() => _TranscribePageState();
 }
 
 class _TranscribePageState extends State<TranscribePage> {
   @override
   void initState() {
     super.initState();
-    // Llamar a useMockTranscriptionEU() cuando se crea la página
-    GetIt.instance<TranscriptionCubit>().useMockTranscriptionEU();
+    if (widget.filePath != null) {
+      _transcribeFile(widget.filePath!);
+    }
+  }
+
+  void _transcribeFile(String filePath) async {
+    // Create a PlatformFile from the file path
+    File file = File(filePath);
+    if (await file.exists()) {
+      PlatformFile platformFile = PlatformFile(
+        name: file.path.split('/').last,
+        path: file.path,
+        size: file.lengthSync(),
+      );
+      context.read<TranscriptionCubit>().transcribeAudio(platformFile);
+    } else {
+      _showError('File does not exist: $filePath');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transcribe Page'),
+        title: const Text('Transcribe Audio'),
       ),
-      body: BlocBuilder<TranscriptionCubit, TranscriptionState>(
+      body: BlocConsumer<TranscriptionCubit, TranscriptionState>(
+        listener: (context, state) {
+          if (state.status == TranscriptionStatus.error) {
+            _showError(state.errorMessage!);
+          } else if (state.status == TranscriptionStatus.serverBusy) {
+            _showError('Server is busy: ${state.serverStatusResult!.file}');
+          }
+        },
         builder: (context, state) {
-          return SingleChildScrollView(
-            child: Center(
+          if (state.status == TranscriptionStatus.loading) {
+            return const Center(
+              child: LoadingWidget(),
+            );
+          } else if (state.status == TranscriptionStatus.loaded) {
+            return Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ... (otros widgets)
-                  AssociatedSegmentsTable(
-                    associatedSegments: state.transcription?.wordAlignmentSegments,
-                    realTextSegments: state.transcription?.referenceTextOnlyWordsSegments,
-                    realTextWords: state.transcription?.referenceTextWords,transcribedWords: state.transcription?.audioTranscriptionWords,
+                  const Text('Transcription Complete!'),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Navigate to the page where you display the transcription
+                    },
+                    child: const Text('View Transcription'),
                   ),
-                  // ... (otros widgets)
                 ],
               ),
-            ),
-          );
+            );
+          } else {
+            return Center(
+              child: widget.filePath == null
+                  ? ElevatedButton(
+                onPressed: () async {
+                  FilePickerResult? result = await FilePicker.platform.pickFiles(
+                    type: FileType.audio,
+                  );
+                  if (result != null) {
+                    PlatformFile file = result.files.first;
+                    context.read<TranscriptionCubit>().transcribeAudio(file);
+                  }
+                },
+                child: const Text('Select Audio File'),
+              )
+                  : const Text('Waiting for transcription...'), // Show a message when filepath is provided
+            );
+          }
         },
       ),
+    );
+  }
+
+  void _showError(String message) {
+    // Show error message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

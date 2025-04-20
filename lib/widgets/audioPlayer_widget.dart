@@ -24,6 +24,7 @@ class AudioPlayerWidget extends StatelessWidget {
                         : Icons.play_arrow,
                   ),
                   onPressed: () {
+                    print("playerId: ${cubit.audioPlayer.playerId} ${cubit.audioPlayer.source}");
                     if (state.status == TranscriptionStatus.isPlayerplaying) {
                       cubit.audioPlayer.pause();
                     } else {

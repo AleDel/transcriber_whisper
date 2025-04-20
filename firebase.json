@@ -14,19 +14,20 @@
     ],
     "headers": [
       {
-        "source": "**",
+        "source": "**/*.@(js|css)",
         "headers": [
           {
-            "key": "Access-Control-Allow-Origin",
-            "value": "https://webphpiframeflutter.ale, https://otrodominio.com, https://tercerdominio.net"
-          },
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "service_worker.js",
+        "headers": [
           {
-            "key": "Access-Control-Allow-Methods",
-            "value": "GET, POST, OPTIONS"
-          },
-          {
-            "key": "Access-Control-Allow-Headers",
-            "value": "Content-Type"
+            "key": "Cache-Control",
+            "value": "no-cache"
           }
         ]
       }

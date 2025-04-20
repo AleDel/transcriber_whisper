@@ -6,7 +6,40 @@ import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'models/comparation_model.dart';
 import 'models/word_with_spans.dart';
 
-enum TranscriptionStatus { initial, loaded, loading, error, noserver, isPlayerplaying, isPlayerpause, isPlayerstopped, isPlayercompleted, isPlayerdisposed, success }
+enum TranscriptionStatus {
+  initial,
+  loaded,
+  loading,
+  error,
+  noserver,
+  isPlayerplaying,
+  isPlayerpause,
+  isPlayerstopped,
+  isPlayercompleted,
+  isPlayerdisposed,
+  success,
+  checkingAudio,
+  audioChecked,
+  checkingServerStatus,
+  serverStatusChecked,
+  serverBusy
+}
+
+class CheckAudioResult {
+  final bool isTranscribed;
+  final String message;
+  final String? nombreAudio;
+  final String? action;
+  final String status; // Ahora es requerido
+
+  CheckAudioResult({required this.isTranscribed, required this.message, this.nombreAudio, this.action, required this.status});
+}
+class ServerStatusResult {
+  final String? file;
+  final String status;
+
+  ServerStatusResult({this.file, required this.status});
+}
 
 class TranscriptionState extends Equatable {
   final TranscriptionStatus status;
@@ -24,6 +57,8 @@ class TranscriptionState extends Equatable {
   final String? errorMessage;
   final List<WordWithSpans> wordsWithSpans;
   final String? textoRealformadoparrafos;
+  final CheckAudioResult? checkAudioResult; // Nuevo campo
+  final ServerStatusResult? serverStatusResult; // Nuevo campo
 
   const TranscriptionState({
     required this.status,
@@ -41,6 +76,8 @@ class TranscriptionState extends Equatable {
     this.errorMessage,
     this.wordsWithSpans = const [],
     this.textoRealformadoparrafos,
+    this.checkAudioResult, // Nuevo parámetro
+    this.serverStatusResult, // Nuevo parámetro
   });
 
   TranscriptionState copyWith({
@@ -58,7 +95,9 @@ class TranscriptionState extends Equatable {
     bool? editMode,
     String? errorMessage,
     List<WordWithSpans>? wordsWithSpans,
-    String? textoRealformadoparrafos
+    String? textoRealformadoparrafos,
+    CheckAudioResult? checkAudioResult, // Nuevo parámetro
+    ServerStatusResult? serverStatusResult, // Nuevo parámetro
   }) {
     return TranscriptionState(
       status: status ?? this.status,
@@ -75,7 +114,9 @@ class TranscriptionState extends Equatable {
       editMode: editMode ?? this.editMode,
       errorMessage: errorMessage ?? this.errorMessage,
       wordsWithSpans: wordsWithSpans ?? this.wordsWithSpans,
-      textoRealformadoparrafos: textoRealformadoparrafos ?? this.textoRealformadoparrafos
+      textoRealformadoparrafos: textoRealformadoparrafos ?? this.textoRealformadoparrafos,
+      checkAudioResult: checkAudioResult ?? this.checkAudioResult,
+      serverStatusResult: serverStatusResult ?? this.serverStatusResult, // Nuevo campo
     );
   }
 
@@ -93,6 +134,8 @@ class TranscriptionState extends Equatable {
     editMode,
     errorMessage,
     wordsWithSpans,
-    textoRealformadoparrafos
+    textoRealformadoparrafos,
+    checkAudioResult,
+    serverStatusResult, // Nuevo campo
   ];
 }

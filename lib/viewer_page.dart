@@ -1,47 +1,49 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:transcriber_whisper/transcription_cubit.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
-import 'package:transcriber_whisper/widgets/audioPlayer_widget.dart';
 import 'package:transcriber_whisper/widgets/highlighted_real_text_widget.dart';
-import 'package:transcriber_whisper/widgets/loadingWidget.dart';
 import 'package:transcriber_whisper/widgets/sliding_text_widget.dart';
 
 
-class DiffTextPage extends StatefulWidget {
-  const DiffTextPage({super.key});
+class ViewerPage extends StatefulWidget {
+  final String filename;
+  final String? text;
+
+  const ViewerPage({Key? key, required this.filename, required this.text}) : super(key: key);
 
   @override
-  State<DiffTextPage> createState() => _DiffTextPageState();
+  State<ViewerPage> createState() => _ViewerPageState();
 }
 
-class _DiffTextPageState extends State<DiffTextPage> {
+class _ViewerPageState extends State<ViewerPage> {
+
   final ScrollController _scrollController = ScrollController();
   GetIt getIt = GetIt.instance;
 
   @override
   void initState() {
     super.initState();
-    /*WidgetsBinding.instance.addPostFrameCallback((_) {
-      //getIt<TranscriptionCubit>().restartAudioPlayer();
-      getIt<TranscriptionCubit>().useMockTranscriptionEU();
-    });*/
+    // Llama a la función del cubit para obtener los datos al iniciar la página
+    context.read<TranscriptionCubit>().fetchDataAndUseReal(widget.filename, widget.text);
+    context.read<TranscriptionCubit>().resetAudioPlayer();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    getIt<TranscriptionCubit>().stopAudioPlayer();
+    //getIt<TranscriptionCubit>().stopAudioPlayer();
+    //getIt<TranscriptionCubit>().disposeAudioPlayer();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //appBar: AppBar(title: const Text('Diff Text Page')),
+      //appBar: AppBar(title: const Text('Viewer Page'),),
       body: Stack(
         children: [
           BlocBuilder<TranscriptionCubit, TranscriptionState>(
@@ -73,6 +75,24 @@ class _DiffTextPageState extends State<DiffTextPage> {
                         ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionES(), child: const Text('Usar Mock data Es')),
                         ElevatedButton(onPressed: () async => getIt<TranscriptionCubit>().useMockTranscriptionEU(), child: const Text('Usar Mock data Eu')),
                         //ElevatedButton(onPressed: () async => context.go('/details/audio8'), child: const Text('Go details')),
+                        ElevatedButton(
+                          onPressed: () {
+                            //getIt<TranscriptionCubit>().playAudio();
+                            String audiourl = getIt<TranscriptionCubit>().currentAudioUrl;
+                            print("audiourl: $audiourl");
+                            final AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 1000");
+                            audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
+                            //getIt<TranscriptionCubit>().audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
+                          },
+                          child: const Text('Play Audio'),
+                        ),ElevatedButton(
+                          onPressed: () {
+
+
+                            getIt<TranscriptionCubit>().audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
+                          },
+                          child: const Text('Play Audio'),
+                        ),
                       ],
                     ),
                   ),

@@ -351,9 +351,9 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
     }
 
     // Agregar el último párrafo si hay widgets en él
-    /*if (listSegmentsWidgets.isNotEmpty) {
+    if (listSegmentsWidgets.isNotEmpty) {
       formattedTextWidgets.add(Wrap(children: listSegmentsWidgets));
-    }*/
+    }/**/
     return formattedTextWidgets;
   }
 
@@ -418,9 +418,9 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                       children: [
                         const SizedBox(height: 18),
                         AudioPlayerWidget(),
-                        ElevatedButton(onPressed: () => getIt<TranscriptionCubit>().saveAnalysisDataToJson(), child: const Text("Save analysis json")),
+                        ElevatedButton(onPressed: () => getIt<TranscriptionCubit>().saveAnalysisDataToJson(), child: const Text("Gorde")),
                         const SizedBox(height: 18),
-                        ElevatedButton(onPressed: () => getIt<TranscriptionCubit>().loadAnalysisDataFromJson(), child: const Text("Load analysis json")),
+                        ElevatedButton(onPressed: () => getIt<TranscriptionCubit>().loadAnalysisDataFromJson(), child: const Text("Kargatu")),
                         if (state.transcription != null) AnalysisSummaryCard(transcription: state.transcription!),
 
                         Padding(
@@ -439,7 +439,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                                       widget.onShowAssociatedWordsChanged(value);
                                     },
                                   ),
-                                  Text("Show Associated Words", style: Theme.of(context).textTheme.bodySmall),
+                                  Text("Erakutsi hitz elkartuak", style: Theme.of(context).textTheme.bodySmall),
                                 ],
                               ),
                               Row(
@@ -453,7 +453,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                                       widget.onHighlightDeletedWordsChanged(value);
                                     },
                                   ),
-                                  Text("Highlight Deleted Words", style: Theme.of(context).textTheme.bodySmall),
+                                  Text("Markatu ezabatutako hitzak", style: Theme.of(context).textTheme.bodySmall),
                                 ],
                               ),
                               Row(
@@ -467,7 +467,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                                       widget.onShowInsertionsAndDeletionsWithArrowsChanged(value);
                                     },
                                   ),
-                                  Text("Show I/D Arrows", style: Theme.of(context).textTheme.bodySmall), // New switch
+                                  Text("Erakutsi +/- hitzak", style: Theme.of(context).textTheme.bodySmall), // New switch
                                 ],
                               ),
                               Row(

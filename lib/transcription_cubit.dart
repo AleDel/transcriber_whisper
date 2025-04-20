@@ -12,7 +12,6 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:transcriber_whisper/models/transcription_model.dart';
-import 'package:transcriber_whisper/segment_context_menu.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
 
 import 'mockData/textotest.dart';
@@ -26,12 +25,12 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   TranscriptionCubit() : super(const TranscriptionState(status: TranscriptionStatus.initial)) {
     //initSocket();
     //initAudioPlayer();
+    _initAudioPlayer();
   }
 
   final ScrollController scrollController = ScrollController();
   //final AudioPlayer audioPlayer = AudioPlayer();
-  final AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 0"); // Ahora es final y se inicializa en el constructor
-  //AudioPlayer audioPlayer = AudioPlayer(playerId: "el audio player 0");
+  AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 0");
   late IO.Socket socket;
   Transcription? transcription;
   String textoRealformadoparrafos = "";
@@ -45,6 +44,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   DateTime? _lastForceCurrentWordCall;
   final Duration _forceCurrentWordDebounceTime = const Duration(milliseconds: 100);
   final int totalSamples = 512;
+  bool _audioLoaded = false;
   /*static Map<String, Color> availableTags = {
     'Omisioa': const Color(0xFFE57373), // Red 300 (Rojo Suave)
     'Ordezkapena': const Color(0xFFFFA726), // Orange 400 (Naranja Medio)
@@ -81,11 +81,14 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     'Errepikapena': 'E',
     'Puntuazioa': '.',
   };
+  String currentAudioUrl = '';
 
   String transcription_path = "";
   String original_audio_path = "";
   String normalized_audio_path = "";
   int audio_duration_seconds = 0;
+
+  final String _baseUrl = 'http://localhost:5001';
 
   Future<void> saveAnalysisDataToJson() async {
     if (transcription == null) {
@@ -309,7 +312,76 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     });
   }
 
-  
+  //Future<void> processSharedFiles(){}
+  void processSharedFiles(audioFile, textFile, jsonFile) {
+    print("processSharedFiles ---------> $audioFile, $textFile, $jsonFile");
+  }
+
+  Future<void> checkAudio(String filename) async {
+    emit(state.copyWith(status: TranscriptionStatus.checkingAudio));
+    print('Verificando audio: $filename');
+    final url = 'http://localhost:5001/checkaudio?filename=$filename';
+    print("url: $url");
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("data: $data");
+        final checkAudioResult = CheckAudioResult(
+          isTranscribed: data['isTranscribed'],
+          message: data['message'],
+          nombreAudio: data['nombreAudio'],
+          action: data['action'],
+          status: data['status'], // Añadido el status
+        );
+        emit(state.copyWith(status: TranscriptionStatus.audioChecked, checkAudioResult: checkAudioResult));
+      } else {
+        final data = jsonDecode(response.body);
+        final checkAudioResult = CheckAudioResult(
+          isTranscribed: false,
+          message: data['message'],
+          status: data['status'], // Añadido el status
+        );
+        emit(state.copyWith(status: TranscriptionStatus.error, checkAudioResult: checkAudioResult));
+      }
+    } catch (e) {
+      final checkAudioResult = CheckAudioResult(
+        isTranscribed: false,
+        message: 'Network error: $e',
+        status: 'error', // Añadido el status
+      );
+      emit(state.copyWith(status: TranscriptionStatus.error, checkAudioResult: checkAudioResult));
+    }
+  }
+
+  Future<void> checkServerStatus() async {
+    emit(state.copyWith(status: TranscriptionStatus.checkingServerStatus));
+    print('Verificando estado del servidor');
+    final url = 'http://localhost:5001/statusServerTranscription';
+    print("url: $url");
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("data: $data");
+        final serverStatusResult = ServerStatusResult(
+          file: data['file'],
+          status: data['status'],
+        );
+        emit(state.copyWith(status: TranscriptionStatus.serverStatusChecked, serverStatusResult: serverStatusResult));
+      } else {
+        final serverStatusResult = ServerStatusResult(
+          status: 'error',
+        );
+        emit(state.copyWith(status: TranscriptionStatus.error, serverStatusResult: serverStatusResult));
+      }
+    } catch (e) {
+      final serverStatusResult = ServerStatusResult(
+        status: 'error',
+      );
+      emit(state.copyWith(status: TranscriptionStatus.error, serverStatusResult: serverStatusResult));
+    }
+  }
 
   Future<void> alignAudio(PlatformFile audioFile, String text) async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
@@ -349,7 +421,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
-        print(jsonResponse);
+        //print(jsonResponse);
         // ... procesar la respuesta
         emit(state.copyWith(status: TranscriptionStatus.loaded));
       } else {
@@ -368,21 +440,15 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     try {
       final url = Uri.parse('http://127.0.0.1:5001/transcribe');
       //final url = Uri.parse('https://infanciadigital.duckdns.org/transcriber/transcribe');
-      final headers = {'Content-Type': 'application/octet-stream'};
-      Uint8List? fileBytes;
+      final headers = {'Content-Type': 'application/json'}; // Cambiado a application/json
       String audioFilePath = "";
       if (audioFile.path != null) {
         audioFilePath = audioFile.path!;
-      }
-      if (audioFile.bytes != null) {
-        fileBytes = audioFile.bytes;
-      } else if (audioFile.path != null) {
-        fileBytes = await File(audioFile.path!).readAsBytes();
       } else {
         throw Exception("No se pudo leer el archivo");
       }
-
-      final response = await http.post(url, headers: headers, body: fileBytes);
+      final body = jsonEncode({'audio_path': audioFilePath}); // Enviando el path en un JSON
+      final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
@@ -410,6 +476,18 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
         await audioPlayer.setSource(DeviceFileSource(audioFilePath));
         //await loadSamples(audioFilePath);
+      } else if (response.statusCode == 409) {
+        var jsonResponse = jsonDecode(response.body);
+        emit(state.copyWith(status: TranscriptionStatus.serverBusy, errorMessage: jsonResponse['error'], serverStatusResult: ServerStatusResult(file: jsonResponse['file'], status: 'busy')));
+      } else if (response.statusCode == 400) {
+        var jsonResponse = jsonDecode(response.body);
+        emit(state.copyWith(status: TranscriptionStatus.error, errorMessage: jsonResponse['error']));
+      } else if (response.statusCode == 404) {
+        var jsonResponse = jsonDecode(response.body);
+        emit(state.copyWith(status: TranscriptionStatus.error, errorMessage: jsonResponse['error']));
+      } else if (response.statusCode == 500) {
+        var jsonResponse = jsonDecode(response.body);
+        emit(state.copyWith(status: TranscriptionStatus.error, errorMessage: jsonResponse['error']));
       } else {
         print('Error: ${response.statusCode}');
         emit(state.copyWith(status: TranscriptionStatus.error, errorMessage: "Error en la respuesta: ${response.statusCode}"));
@@ -426,7 +504,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
       print('Error: $e');
       emit(state.copyWith(status: TranscriptionStatus.error, errorMessage: errorMessage));
     } finally {
-      emit(state.copyWith(status: TranscriptionStatus.loaded));
+      //emit(state.copyWith(status: TranscriptionStatus.loaded));
     }
   }
 
@@ -465,6 +543,53 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   //////////////////////
 
+  Future<void> fetchDataAndUseReal(String filename, String? text) async { // Cambiado referenceText por text
+    print("aaaaaaaaaaaa: $text");
+    emit(state.copyWith(status: TranscriptionStatus.loading));
+    try {
+
+
+      // 1. Llamar al servidor Flask para obtener los datos
+      final queryParameters = {
+        'filename': filename,
+        if (text != null) 'referenceText': text, // Usamos text como referenceText
+      };
+      final uri = Uri.parse('$_baseUrl/get_data').replace(queryParameters: queryParameters);
+      final response = await http.get(uri); // Usamos http.get
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body); // Decodificamos el JSON con jsonDecode
+
+        // 2. Procesar la respuesta del servidor
+        List<Map<String, dynamic>> listmap = List<Map<String, dynamic>>.from(data['transcription']);
+        String? normalizedAudioUrl = data['normalized_audio_url'];
+        String serverReferenceText = data['reference_text'] ?? ''; // Usar el texto del servidor si existe, si no vacio
+
+        //print("normalizedAudioUrl: $normalizedAudioUrl, serverReferenceText: $serverReferenceText");
+
+        if (normalizedAudioUrl != null) {
+          print("existe el audio: $normalizedAudioUrl, _audioLoaded: $_audioLoaded");
+          await useReal(listmap, '$_baseUrl$normalizedAudioUrl', serverReferenceText);
+          if (!_audioLoaded) {
+            currentAudioUrl = '$_baseUrl$normalizedAudioUrl';
+            // Reiniciar el AudioPlayer antes de cargar un nuevo audio
+            await resetAudioPlayer();
+            await audioPlayer.setSource(UrlSource('$_baseUrl$normalizedAudioUrl'));
+            print("AudioPlayer state after setSource: ${audioPlayer.state}");
+            _audioLoaded = true;
+          }
+        } else {
+          await useReal(listmap, '', serverReferenceText);
+        }
+      } else {
+        emit(state.copyWith(status: TranscriptionStatus.error));
+      }
+    } catch (e) {
+      print('Error en fetchDataAndUseReal: $e');
+      emit(state.copyWith(status: TranscriptionStatus.error));
+    }
+  }
+
   Future<void> useReal(List<Map<String, dynamic>> listmap, String audioPath, String referenceText) async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
 
@@ -473,8 +598,12 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     // Asignar el texto real a la transcripción
     transcription?.referenceText = referenceText;
 
-    await initAudioPlayer();
-    await audioPlayer.setSource(UrlSource(audioPath));
+    //await initAudioPlayer();
+    //await audioPlayer.setSource(UrlSource(audioPath));
+    /*if(audioPath.isNotEmpty){
+      //await initAudioPlayer(); // Eliminamos la llamada a initAudioPlayer
+      await audioPlayer.setSource(UrlSource(audioPath));
+    }*/
 
     // Actualizar el estado
     emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: referenceText));
@@ -484,6 +613,9 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   Future<void> useMockTranscriptionEU() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
+
+    // Reiniciar el AudioPlayer antes de cargar un nuevo audio
+    await resetAudioPlayer();
 
     String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
     List<dynamic> jsonList = json.decode(jsonString);
@@ -502,8 +634,8 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     // Asignar el texto real a la transcripción
     transcription?.referenceText = formattedRawRealText;
 
-    await initAudioPlayer();
-    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
+    //await initAudioPlayer();
+    //await audioPlayer.setSource(AssetSource('/audio/audio_prueba_normalized.wav'));
 
     // Actualizar el estado
     emit(state.copyWith(status: TranscriptionStatus.success, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
@@ -513,6 +645,9 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   Future<void> useMockTranscriptionES() async {
     emit(state.copyWith(status: TranscriptionStatus.loading));
+
+    // Reiniciar el AudioPlayer antes de cargar un nuevo audio
+    await resetAudioPlayer();
 
     String text = await rootBundle.loadString('assets/texto_LA_TORTUGA_KALI.txt');
     //print("text cargado del asset: $text");
@@ -527,8 +662,8 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     // Asignar el texto real a la transcripción
     transcription?.referenceText = formattedRawRealText;
 
-    await initAudioPlayer();
-    await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
+    //await initAudioPlayer();
+    //await audioPlayer.setSource(AssetSource('/audio/audio_prueba_es.wav'));
     emit(state.copyWith(status: TranscriptionStatus.loaded, transcription: transcription, textoRealformadoparrafos: formattedRawRealText));
     _createSegmentIndexMap();
   }
@@ -624,11 +759,73 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   ////////////// audio sync
 
-  void stopAudioPlayer() async {
+  Future<void> stopAudioPlayer() async {
     await audioPlayer.stop();
   }
 
-  Future<void> initAudioPlayer() async {
+  Future<void> playAudio() async {
+    if (audioPlayer.state == PlayerState.playing) {
+      await audioPlayer.pause();
+    } else {
+      await audioPlayer.resume();
+    }
+  }
+
+  Future<void> resetAudioPlayer() async {
+    print("666666666666666666666666666666666666666666");
+    print("fffff: $currentAudioUrl");
+    await audioPlayer.dispose();
+    audioPlayer = AudioPlayer();
+    _initAudioPlayer();
+  }
+
+  Future<void> disposeAudioPlayer() async {
+    await audioPlayer.dispose();
+  }
+
+  @override
+  Future<void> close() {
+    disposeAudioPlayer();
+    return super.close();
+  }
+
+
+  Future<void> _initAudioPlayer() async {
+    // Set the audio context
+    await audioPlayer.setAudioContext(AudioContext(
+      android: const AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: true,
+        contentType: AndroidContentType.speech,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.gainTransient,
+      ),
+    ));
+
+    audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.playing) {
+        emit(this.state.copyWith(status: TranscriptionStatus.isPlayerplaying));
+      } else if (state == PlayerState.paused) {
+        emit(this.state.copyWith(status: TranscriptionStatus.isPlayerpause));
+      } else if (state == PlayerState.completed) {
+        emit(this.state.copyWith(status: TranscriptionStatus.isPlayercompleted));
+      } else if (state == PlayerState.stopped) {
+        emit(this.state.copyWith(status: TranscriptionStatus.isPlayerstopped));
+      }
+    });
+    audioPlayer.onPositionChanged.listen((Duration position) {
+      emit(this.state.copyWith(extradata: this.state.extradata?.copyWith(audioPosition: position)));
+    });
+    audioPlayer.onDurationChanged.listen((Duration duration) {
+      emit(this.state.copyWith(extradata: this.state.extradata?.copyWith(audioDuration: duration)));
+    });
+    audioPlayer.onPlayerComplete.listen((event) {
+      print("Player completed");
+      _audioLoaded = false;
+    });
+  }
+
+  /*Future<void> initAudioPlayer() async {
     print("-- initAudioPlayer --");
     /*if (audioPlayer != null) {
       print("-- initAudioPlayer -- Dispose el AudioPlayer antiguo: ${audioPlayer.playerId}");
@@ -665,7 +862,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
       }
     });
     emit(state.copyWith(extradata: state.extradata?.copyWith(currentAudioWordIndex: 0, currentAssociatedWordIndex: 0)));
-  }
+  }*/
 
   // Actualiza la palabra actual basándose en la posición del audio
   void updateCurrentWord() {
@@ -775,4 +972,6 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     }
     return -1; // No encontrado
   }
+
+
 }
