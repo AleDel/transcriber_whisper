@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart';
+//import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -178,7 +178,7 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
         //print("2222222222222222222222222222222222");
         if (listSegmentsWidgets.isNotEmpty) {
           formattedTextWidgets.add(Wrap(children: listSegmentsWidgets));
-          formattedTextWidgets.add(const SizedBox(height: 76)); // Separación entre párrafos
+          formattedTextWidgets.add(const SizedBox(height: 26)); // Separación entre párrafos
           listSegmentsWidgets = [];
         }
         continue; // Skip to the next segment
@@ -505,7 +505,8 @@ class _HighlightedRealTextWidgetState extends TranscriptionWidgetState<Highlight
                     padding: const EdgeInsets.all(18.0),
                     child: SingleChildScrollView(
                       controller: widget.scrollController,
-                      child: Padding(padding: const EdgeInsets.all(8.0), child: Wrap(children: formattedTextWidgets)),
+                      child: Padding(padding: const EdgeInsets.all(8.0), child: Column(mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment:CrossAxisAlignment.start, children: formattedTextWidgets)),
                     ),
                   ),
                 ),

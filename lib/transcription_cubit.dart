@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:audioplayers/audioplayers.dart';
+//import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -9,10 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:transcriber_whisper/models/transcription_model.dart';
 import 'package:transcriber_whisper/transcription_state.dart';
+import 'package:audio_session/audio_session.dart';
 
 import 'mockData/textotest.dart';
 import 'models/alignment_mfa_data.dart';
@@ -30,7 +32,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
   final ScrollController scrollController = ScrollController();
   //final AudioPlayer audioPlayer = AudioPlayer();
-  AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 0");
+  AudioPlayer audioPlayer = AudioPlayer();
   late IO.Socket socket;
   Transcription? transcription;
   String textoRealformadoparrafos = "";
@@ -474,7 +476,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
         );
         //await audioPlayer.play(audioFilePath, isLocal: true);
 
-        await audioPlayer.setSource(DeviceFileSource(audioFilePath));
+        //await audioPlayer.setSource(DeviceFileSource(audioFilePath));
         //await loadSamples(audioFilePath);
       } else if (response.statusCode == 409) {
         var jsonResponse = jsonDecode(response.body);
@@ -547,8 +549,6 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     print("aaaaaaaaaaaa: $text");
     emit(state.copyWith(status: TranscriptionStatus.loading));
     try {
-
-
       // 1. Llamar al servidor Flask para obtener los datos
       final queryParameters = {
         'filename': filename,
@@ -573,9 +573,9 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
           if (!_audioLoaded) {
             currentAudioUrl = '$_baseUrl$normalizedAudioUrl';
             // Reiniciar el AudioPlayer antes de cargar un nuevo audio
-            await resetAudioPlayer();
-            await audioPlayer.setSource(UrlSource('$_baseUrl$normalizedAudioUrl'));
-            print("AudioPlayer state after setSource: ${audioPlayer.state}");
+            await resetAudioPlayer(currentAudioUrl);
+            //await audioPlayer.setSource(UrlSource('$_baseUrl$normalizedAudioUrl'));
+            print("AudioPlayer state after setSource: ${audioPlayer.playerState}");
             _audioLoaded = true;
           }
         } else {
@@ -615,7 +615,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     emit(state.copyWith(status: TranscriptionStatus.loading));
 
     // Reiniciar el AudioPlayer antes de cargar un nuevo audio
-    await resetAudioPlayer();
+    //await resetAudioPlayer();
 
     String jsonString = await rootBundle.loadString('assets/transcriptionWhisper_normalized.json');
     List<dynamic> jsonList = json.decode(jsonString);
@@ -647,7 +647,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     emit(state.copyWith(status: TranscriptionStatus.loading));
 
     // Reiniciar el AudioPlayer antes de cargar un nuevo audio
-    await resetAudioPlayer();
+   // await resetAudioPlayer();
 
     String text = await rootBundle.loadString('assets/texto_LA_TORTUGA_KALI.txt');
     //print("text cargado del asset: $text");
@@ -763,19 +763,14 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     await audioPlayer.stop();
   }
 
-  Future<void> playAudio() async {
-    if (audioPlayer.state == PlayerState.playing) {
-      await audioPlayer.pause();
-    } else {
-      await audioPlayer.resume();
-    }
-  }
-
-  Future<void> resetAudioPlayer() async {
+  Future<void> resetAudioPlayer(String audiourl) async {
     print("666666666666666666666666666666666666666666");
     print("fffff: $currentAudioUrl");
     await audioPlayer.dispose();
     audioPlayer = AudioPlayer();
+    await audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(audiourl)));
+    //await audioPlayer.play(UrlSource(audiourl)); // Eliminamos esta línea
+    //await audioPlayer.stop(); // Eliminamos esta línea
     _initAudioPlayer();
   }
 
@@ -791,38 +786,29 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
 
 
   Future<void> _initAudioPlayer() async {
-    // Set the audio context
-    await audioPlayer.setAudioContext(AudioContext(
-      android: const AudioContextAndroid(
-        isSpeakerphoneOn: false,
-        stayAwake: true,
-        contentType: AndroidContentType.speech,
-        usageType: AndroidUsageType.media,
-        audioFocus: AndroidAudioFocus.gainTransient,
-      ),
-    ));
-
-    audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      if (state == PlayerState.playing) {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.speech());
+    audioPlayer.playerStateStream.listen((PlayerState state) {
+      print("Player state changed: $state");
+      if (state.playing) {
         emit(this.state.copyWith(status: TranscriptionStatus.isPlayerplaying));
-      } else if (state == PlayerState.paused) {
+      } else if (state.processingState == ProcessingState.ready) {
         emit(this.state.copyWith(status: TranscriptionStatus.isPlayerpause));
-      } else if (state == PlayerState.completed) {
+      } else if (state.processingState == ProcessingState.completed) {
         emit(this.state.copyWith(status: TranscriptionStatus.isPlayercompleted));
-      } else if (state == PlayerState.stopped) {
+      } else if (state.processingState == ProcessingState.idle) {
         emit(this.state.copyWith(status: TranscriptionStatus.isPlayerstopped));
       }
     });
-    audioPlayer.onPositionChanged.listen((Duration position) {
+    audioPlayer.positionStream.listen((Duration position) {
+      //print(position);
       emit(this.state.copyWith(extradata: this.state.extradata?.copyWith(audioPosition: position)));
+      updateCurrentWord();
     });
-    audioPlayer.onDurationChanged.listen((Duration duration) {
+    audioPlayer.durationStream.listen((Duration? duration) {
       emit(this.state.copyWith(extradata: this.state.extradata?.copyWith(audioDuration: duration)));
     });
-    audioPlayer.onPlayerComplete.listen((event) {
-      print("Player completed");
-      _audioLoaded = false;
-    });
+
   }
 
   /*Future<void> initAudioPlayer() async {
@@ -867,7 +853,7 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
   // Actualiza la palabra actual basándose en la posición del audio
   void updateCurrentWord() {
     //print("sssssssssssssss");
-    if (audioPlayer.state != PlayerState.playing) return; // Comprobar si el audio se esta reproduciendo
+    if (!audioPlayer.playerState.playing) return; // Comprobar si el audio se esta reproduciendo
     if (state.transcription == null) return;
     final currentPosition = state.extradata!.audioPosition;
     if (currentPosition == null) return;
@@ -930,11 +916,11 @@ class TranscriptionCubit extends Cubit<TranscriptionState> {
     final startMillis = (segment.start * 1000).toInt();
 
     // Check if the audio is playing
-    if (audioPlayer.state == PlayerState.playing) {
+    if (audioPlayer.playerState.playing) {
       audioPlayer.pause(); // Pause if playing
     } else {
       audioPlayer.seek(Duration(milliseconds: startMillis)); // Seek to the new position
-      audioPlayer.resume(); // Resume if not playing
+      audioPlayer.play(); // Resume if not playing
     }
 
     // Buscar el indice de la palabra asociada

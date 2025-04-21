@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -29,7 +29,7 @@ class _ViewerPageState extends State<ViewerPage> {
     super.initState();
     // Llama a la función del cubit para obtener los datos al iniciar la página
     context.read<TranscriptionCubit>().fetchDataAndUseReal(widget.filename, widget.text);
-    context.read<TranscriptionCubit>().resetAudioPlayer();
+    //context.read<TranscriptionCubit>().resetAudioPlayer();
   }
 
   @override
@@ -65,7 +65,7 @@ class _ViewerPageState extends State<ViewerPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   // botones transcribir, etc
-                  Padding(
+                  /*Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -80,22 +80,26 @@ class _ViewerPageState extends State<ViewerPage> {
                             //getIt<TranscriptionCubit>().playAudio();
                             String audiourl = getIt<TranscriptionCubit>().currentAudioUrl;
                             print("audiourl: $audiourl");
-                            final AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 1000");
-                            audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
+                            //final AudioPlayer audioPlayer = AudioPlayer(playerId: "Audioplayer 1000");
+                            //audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
                             //getIt<TranscriptionCubit>().audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
                           },
                           child: const Text('Play Audio'),
-                        ),ElevatedButton(
+                        ),
+                        ElevatedButton(
                           onPressed: () {
-
-
-                            getIt<TranscriptionCubit>().audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
+                            String audiourl = getIt<TranscriptionCubit>().currentAudioUrl;
+                            print("audiourl: $audiourl");
+                            getIt<TranscriptionCubit>().resetAudioPlayer(audiourl);
+                            getIt<TranscriptionCubit>().audioPlayer.play();
+                            //print("playerId: ${getIt<TranscriptionCubit>().audioPlayer.playerId} ${getIt<TranscriptionCubit>().audioPlayer.source}");
+                            //getIt<TranscriptionCubit>().audioPlayer.play(UrlSource(getIt<TranscriptionCubit>().currentAudioUrl));
                           },
-                          child: const Text('Play Audio'),
+                          child: const Text('Play Audio2'),
                         ),
                       ],
                     ),
-                  ),
+                  ),*/
                   // interfaz grafica principal
                   if (state.transcription != null)
                     Expanded(

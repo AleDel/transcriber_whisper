@@ -9,8 +9,8 @@ class Data extends Equatable {
   final bool playAndStopWordOnSelect;
 
   const Data({
-    this.currentWordIndex = -1,
-    this.currentAssociatedWordIndex = -1,
+    this.currentWordIndex = 0,
+    this.currentAssociatedWordIndex = 0,
     this.audioPosition = Duration.zero,
     this.audioDuration = Duration.zero,
     this.audioFilePath,

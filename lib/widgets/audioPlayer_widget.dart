@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:transcriber_whisper/transcription_cubit.dart';
 
 import '../transcription_state.dart';
 
-class AudioPlayerWidget extends StatelessWidget {
+class AudioPlayerWidget extends StatefulWidget {
   const AudioPlayerWidget({Key? key}) : super(key: key);
+
+  @override
+  State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+  GetIt getIt = GetIt.instance;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TranscriptionCubit, TranscriptionState>(
       builder: (context, state) {
-        final cubit = context.read<TranscriptionCubit>();
+        //final cubit = context.read<TranscriptionCubit>();
         return Column(
           children: [
             Row(
@@ -24,19 +32,18 @@ class AudioPlayerWidget extends StatelessWidget {
                         : Icons.play_arrow,
                   ),
                   onPressed: () {
-                    print("playerId: ${cubit.audioPlayer.playerId} ${cubit.audioPlayer.source}");
+                    print("playerId: ${getIt<TranscriptionCubit>().audioPlayer} ${getIt<TranscriptionCubit>().audioPlayer.audioSource}");
                     if (state.status == TranscriptionStatus.isPlayerplaying) {
-                      cubit.audioPlayer.pause();
+                      getIt<TranscriptionCubit>().audioPlayer.pause();
                     } else {
-
-                      cubit.audioPlayer.resume();
+                      getIt<TranscriptionCubit>().audioPlayer.play();
                     }
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.reply_all_rounded),
                   onPressed: () {
-                    cubit.audioPlayer.seek(const Duration(seconds: 0));
+                    getIt<TranscriptionCubit>().audioPlayer.seek(const Duration(seconds: 0));
                   },
                 ),
                 Text(

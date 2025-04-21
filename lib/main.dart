@@ -128,6 +128,8 @@ final _router = GoRouter(
 
 void main() {
   print('Main function started');
+  // Asegúrate de que WidgetsFlutterBinding esté inicializado
+  WidgetsFlutterBinding.ensureInitialized();
   getIt.registerSingleton<TranscriptionCubit>(TranscriptionCubit());
   getIt.registerSingleton<IframeIntegration>(IframeIntegration());
   runApp(const MainAppWrapper());

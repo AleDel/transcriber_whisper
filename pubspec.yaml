@@ -7,7 +7,8 @@ environment:
   sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
-  audioplayers: ^6.2.0
+  #audioplayers: ^6.2.0
+  just_audio: ^0.10.0
   diffutil_dart: ^4.0.1
   desktop_drop: ^0.5.0
   dotted_border: ^2.1.0
