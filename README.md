@@ -1,16 +1,16 @@
 # transcriber_whisper
 
-Aplicación Flutter para gestionar proyectos de transcripción de audio con Whisper y revisar sesiones de trabajo desde una interfaz local.
+A Flutter application for managing audio transcription projects with Whisper and reviewing work sessions from a local interface.
 
-## Qué hace
+## What it does
 
-- organiza proyectos y sesiones de transcripción
-- importa archivos de audio para procesarlos dentro del flujo de trabajo de la aplicación
-- almacena datos de proyecto y sesión en IndexedDB
-- prepara la integración con servicios de alineación y transcripción
-- incluye una interfaz Flutter para revisar y continuar sesiones
+- organizes transcription projects and sessions
+- imports audio files to be processed within the app workflow
+- stores project and session data in IndexedDB
+- prepares integration with alignment and transcription services
+- includes a Flutter interface for reviewing and continuing sessions
 
-## Tecnologías principales
+## Main technologies
 
 - Flutter
 - flutter_bloc
@@ -18,6 +18,6 @@ Aplicación Flutter para gestionar proyectos de transcripción de audio con Whis
 - IndexedDB
 - audioplayers
 
-## Estado del repositorio
+## Repository status
 
-Este repositorio contiene la aplicación cliente. Antes de hacerlo público se han eliminado artefactos locales de despliegue para mantener el proyecto limpio.
+This repository contains the client application. Before making it public, local deployment artifacts were removed to keep the project clean.
