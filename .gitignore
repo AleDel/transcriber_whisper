@@ -1,3 +1,14 @@
+# Sensitive / local deployment files
+.firebase/
+.firebaserc
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+serviceAccount*.json
+credentials*.json
 # Miscellaneous
 *.class
 *.log
